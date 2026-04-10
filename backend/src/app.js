@@ -1,17 +1,23 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
 
+const env = require('./config/env');
 const routes = require('./routes');
+const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
 
-app.use('/api', routes);
+app.use('/api/v1', routes);
+app.use(notFoundHandler);
+app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(env.port, () => {
+    console.log(`Servidor corriendo en http://localhost:${env.port}`);
+  });
+}
+
+module.exports = app;
