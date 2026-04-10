@@ -10,6 +10,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'SIGAT-ES API',
+    data: {
+      version: 'v1',
+      baseUrl: '/api/v1',
+      health: '/api/v1/health',
+    },
+  });
+});
+
 app.use('/api/v1', routes);
 app.use(notFoundHandler);
 app.use(errorHandler);

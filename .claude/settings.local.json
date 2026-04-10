@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ':*)",
+      "mcp__4914d701-80e7-45ca-8a21-a2f1a25ab80c__apply_migration"
+    ]
+  }
+}
