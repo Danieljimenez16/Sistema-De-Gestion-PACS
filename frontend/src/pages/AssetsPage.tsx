@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Filter, Download, RefreshCw } from 'lucide-react';
+import { Plus, Filter, Download, RefreshCw, Trash2 } from 'lucide-react';
 import {
   PageHeader, Button, SearchBar, Table, Pagination,
-  StatusBadge, Modal, Alert, Select,
+  StatusBadge, Modal, Alert, Select, ConfirmDialog,
 } from '../components/ui';
 import { AssetForm } from '../components/assets/AssetForm';
 import { assetService, catalogService } from '../services';
@@ -23,6 +23,8 @@ export const AssetsPage: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [createError, setCreateError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Asset | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Catalog state for filter dropdowns
   const [types, setTypes] = useState<AssetType[]>([]);
@@ -81,6 +83,16 @@ export const AssetsPage: React.FC = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await assetService.remove(deleteTarget.id);
+      setDeleteTarget(null);
+      load();
+    } catch { /* ignore */ } finally { setDeleting(false); }
+  };
+
   const columns = [
     {
       key: 'code',
@@ -134,6 +146,20 @@ export const AssetsPage: React.FC = () => {
       header: 'Actualizado',
       render: (row: Asset) => (
         <span className="text-slate-500 text-xs">{fmt.date(row.updated_at)}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      width: '50px',
+      render: (row: Asset) => (
+        <button
+          onClick={e => { e.stopPropagation(); setDeleteTarget(row); }}
+          className="p-1.5 rounded hover:bg-red-950/50 text-slate-500 hover:text-red-400 transition-colors"
+          title="Eliminar activo"
+        >
+          <Trash2 size={14} />
+        </button>
       ),
     },
   ];
@@ -229,6 +255,16 @@ export const AssetsPage: React.FC = () => {
         total={meta.total}
         limit={LIMIT}
         onPageChange={p => setFilters(f => ({ ...f, page: p }))}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Eliminar activo"
+        message={`¿Eliminar "${deleteTarget?.name}" (${deleteTarget?.code})? Se marcará como dado de baja y no aparecerá en el inventario.`}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
+        danger
       />
 
       {/* Create modal */}

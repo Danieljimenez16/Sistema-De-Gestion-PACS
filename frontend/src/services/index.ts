@@ -3,7 +3,9 @@ import type {
   AuthUser, LoginCredentials, Asset, AssetFilters,
   License, LicenseAssignment, AuditEvent, AuditFilters,
   User, Area, Location, AssetType, AssetStatus, Brand,
-  Assignment, DashboardStats, Import, ImportPreview, PaginatedResponse, ApiResponse,
+  Assignment, DashboardStats, Import, ImportPreview,
+  PaginatedResponse, ApiResponse, PasswordChangeRequest,
+  UserPasswordResponse, ResetPasswordResponse,
 } from '../types';
 import { buildQueryString } from '../utils/helpers';
 
@@ -15,6 +17,10 @@ export const authService = {
     api.get<ApiResponse<AuthUser>>('/auth/me'),
   logout: () =>
     api.post<ApiResponse<null>>('/auth/logout'),
+  changePassword: (body: { current_password?: string; new_password: string; skip_current_check?: boolean }) =>
+    api.post<ApiResponse<{ message: string }>>('/auth/change-password', body),
+  forgotPassword: (email: string) =>
+    api.post<ApiResponse<{ message: string }>>('/auth/forgot-password', { email }),
 };
 
 // ─── Catalogs ────────────────────────────────────────────────────────────────
@@ -39,6 +45,8 @@ export const catalogService = {
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 export const assetService = {
+  nextCode: () =>
+    api.get<ApiResponse<{ next_code: string }>>('/assets/next-code'),
   list: (filters?: AssetFilters) =>
     api.get<PaginatedResponse<Asset>>(`/assets${buildQueryString(filters ?? {})}`),
   get: (id: string) =>
@@ -53,6 +61,8 @@ export const assetService = {
     api.patch<ApiResponse<Asset>>(`/assets/${id}/assignment`, body),
   history: (id: string) =>
     api.get<ApiResponse<{ assignments: Assignment[]; status_history: import('../types').StatusHistory[] }>>(`/assets/${id}/history`),
+  remove: (id: string) =>
+    api.delete<ApiResponse<null>>(`/assets/${id}`),
 };
 
 // ─── Licenses ────────────────────────────────────────────────────────────────
@@ -65,6 +75,8 @@ export const licenseService = {
     api.post<ApiResponse<License>>('/licenses', body),
   update: (id: string, body: Partial<License>) =>
     api.put<ApiResponse<License>>(`/licenses/${id}`, body),
+  remove: (id: string) =>
+    api.delete<ApiResponse<null>>(`/licenses/${id}`),
   assign: (id: string, body: Partial<LicenseAssignment>) =>
     api.post<ApiResponse<LicenseAssignment>>(`/licenses/${id}/assignments`, body),
   assignments: (id: string) =>
@@ -85,12 +97,16 @@ export const userService = {
     api.get<PaginatedResponse<User>>(`/users${buildQueryString(params ?? {})}`),
   get: (id: string) =>
     api.get<ApiResponse<User>>(`/users/${id}`),
-  create: (body: Partial<User> & { password: string }) =>
-    api.post<ApiResponse<User>>('/users', body),
+  create: (body: Partial<User>) =>
+    api.post<ApiResponse<UserPasswordResponse>>('/users', body),
   update: (id: string, body: Partial<User>) =>
     api.put<ApiResponse<User>>(`/users/${id}`, body),
   toggleStatus: (id: string, is_active: boolean) =>
     api.patch<ApiResponse<User>>(`/users/${id}/status`, { is_active }),
+  resetPassword: (id: string) =>
+    api.post<ApiResponse<ResetPasswordResponse>>(`/users/${id}/reset-password`, {}),
+  getPendingPasswordRequests: () =>
+    api.get<ApiResponse<PasswordChangeRequest[]>>('/users/password-requests'),
 };
 
 // ─── Reports ─────────────────────────────────────────────────────────────────

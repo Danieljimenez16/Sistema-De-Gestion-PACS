@@ -13,6 +13,7 @@ router.get('/:id', ctrl.getById);
 router.get('/:id/assignments', ctrl.getAssignments);
 router.post('/', authorize('admin', 'manager'), createRules, ctrl.create);
 router.put('/:id', authorize('admin', 'manager'), updateRules, ctrl.update);
+router.delete('/:id', authorize('admin', 'manager'), ctrl.remove);
 router.post('/:id/assignments', authorize('admin', 'manager'), assignRules, ctrl.assign);
 
 module.exports = router;

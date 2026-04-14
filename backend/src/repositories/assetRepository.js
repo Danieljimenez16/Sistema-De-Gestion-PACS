@@ -67,8 +67,14 @@ const getStatusHistory = (assetId) =>
 const insertStatusHistory = (data) =>
   supabase.from('status_history').insert(data).select().single();
 
+const nextCode = async () => {
+  const { data, error } = await supabase.rpc('next_asset_code');
+  if (error) return { data: 'ELEM-001', error: null };
+  return { data, error: null };
+};
+
 module.exports = {
   findAll, findById, findByCode, findBySerial,
   create, update, softDelete,
-  getStatusHistory, insertStatusHistory,
+  getStatusHistory, insertStatusHistory, nextCode,
 };

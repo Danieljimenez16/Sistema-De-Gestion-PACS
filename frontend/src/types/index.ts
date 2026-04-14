@@ -14,8 +14,28 @@ export interface User {
   role_id?: string;
   role?: Role;
   is_active: boolean;
+  must_change_password?: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface UserPasswordResponse extends User {
+  temp_password?: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+  temp_password?: string;
+}
+
+export interface PasswordChangeRequest {
+  id: string;
+  user_id: string;
+  user?: Pick<User, 'id' | 'full_name' | 'email'>;
+  status: 'pending' | 'resolved';
+  requested_at: string;
+  resolved_at?: string;
+  resolved_by?: string;
 }
 
 export interface Area {
@@ -135,6 +155,8 @@ export interface License {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  created_by_user_id?: string;
+  created_by_user?: Pick<User, 'id' | 'full_name' | 'email'>;
   // computed
   used_seats?: number;
 }
@@ -228,6 +250,7 @@ export interface LoginCredentials {
 
 export interface AuthUser extends User {
   token: string;
+  mustChangePassword?: boolean;
 }
 
 // ─── Filters ─────────────────────────────────────────────────────────────────
@@ -256,14 +279,46 @@ export interface AuditFilters {
 
 // ─── Dashboard stats ──────────────────────────────────────────────────────────
 
+export interface DashboardSeriesPoint {
+  name: string;
+  value: number;
+  color?: string;
+}
+
+export interface LicenseUsagePoint {
+  name: string;
+  used: number;
+  available: number;
+  overused: number;
+  max: number;
+  utilization_pct: number;
+  color?: string;
+}
+
 export interface DashboardStats {
   total_assets: number;
   active_assets: number;
+  assigned_assets: number;
+  unassigned_assets: number;
   in_maintenance: number;
   retired: number;
+  stored_assets: number;
+  damaged_assets: number;
   total_licenses: number;
   expiring_soon: number;
-  assets_by_status: { name: string; value: number; color: string }[];
-  assets_by_type: { name: string; value: number }[];
+  expired_licenses: number;
+  license_capacity: number;
+  license_used_seats: number;
+  license_utilization_pct: number;
+  overused_licenses: number;
+  warranty_expiring_soon: number;
+  expired_warranties: number;
+  assets_by_status: DashboardSeriesPoint[];
+  assets_by_type: DashboardSeriesPoint[];
+  assets_by_area: DashboardSeriesPoint[];
+  assets_by_location: DashboardSeriesPoint[];
+  license_usage: LicenseUsagePoint[];
+  operational_summary: DashboardSeriesPoint[];
+  risk_summary: DashboardSeriesPoint[];
   recent_activity: AuditEvent[];
 }

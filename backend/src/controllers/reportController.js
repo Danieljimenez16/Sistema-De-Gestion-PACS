@@ -1,6 +1,12 @@
 const reportService = require('../services/reportService');
 const { ok } = require('../utils/response');
 
+const dashboard = async (req, res, next) => {
+  try {
+    return res.status(200).json(ok(await reportService.dashboard()));
+  } catch (err) { return next(err); }
+};
+
 const assetsSummary = async (req, res, next) => {
   try {
     return res.status(200).json(ok(await reportService.assetsSummary()));
@@ -26,4 +32,4 @@ const inventoryExport = async (req, res, next) => {
   } catch (err) { return next(err); }
 };
 
-module.exports = { assetsSummary, assetsByArea, licensesExpiringSoon, inventoryExport };
+module.exports = { dashboard, assetsSummary, assetsByArea, licensesExpiringSoon, inventoryExport };

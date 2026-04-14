@@ -8,6 +8,7 @@ const router = Router();
 
 router.use(authenticate);
 
+router.get('/next-code', ctrl.nextCode);
 router.get('/', ctrl.list);
 router.get('/:id', ctrl.getById);
 router.get('/:id/status-history', ctrl.getStatusHistory);
@@ -15,5 +16,6 @@ router.post('/', authorize('admin', 'manager'), createRules, ctrl.create);
 router.put('/:id', authorize('admin', 'manager'), updateRules, ctrl.update);
 router.patch('/:id/status', authorize('admin', 'manager'), statusRules, ctrl.changeStatus);
 router.patch('/:id/assignment', authorize('admin', 'manager'), assignmentRules, ctrl.assign);
+router.delete('/:id', authorize('admin', 'manager'), ctrl.remove);
 
 module.exports = router;

@@ -6,6 +6,7 @@ const router = Router();
 
 router.use(authenticate);
 
+router.get('/dashboard', ctrl.dashboard);
 router.get('/assets/summary', ctrl.assetsSummary);
 router.get('/assets/by-area', ctrl.assetsByArea);
 router.get('/licenses/expiring', ctrl.licensesExpiringSoon);

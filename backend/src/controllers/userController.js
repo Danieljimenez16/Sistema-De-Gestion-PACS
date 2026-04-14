@@ -36,4 +36,18 @@ const setStatus = async (req, res, next) => {
   } catch (err) { return next(err); }
 };
 
-module.exports = { list, getById, create, update, setStatus };
+const resetPassword = async (req, res, next) => {
+  try {
+    const data = await userService.resetPassword(req.params.id, req.user.sub, req.ip);
+    return res.status(200).json(ok(data));
+  } catch (err) { return next(err); }
+};
+
+const getPendingPasswordRequests = async (req, res, next) => {
+  try {
+    const data = await userService.getPendingPasswordRequests();
+    return res.status(200).json(ok(data));
+  } catch (err) { return next(err); }
+};
+
+module.exports = { list, getById, create, update, setStatus, resetPassword, getPendingPasswordRequests };

@@ -135,4 +135,24 @@ const getStatusHistory = async (id) => {
   return data;
 };
 
-module.exports = { list, getById, create, update, changeStatus, assign, getStatusHistory };
+const nextCode = async () => {
+  const { data, error } = await assetRepo.nextCode();
+  if (error) throw new AppError('Error al generar código', 500);
+  return { next_code: data };
+};
+
+const remove = async (id, actorId, ip) => {
+  const { data: asset, error: e1 } = await assetRepo.findById(id);
+  if (e1 || !asset) throw new AppError('Activo no encontrado', 404);
+
+  const { error } = await assetRepo.softDelete(id);
+  if (error) throw new AppError('Error al eliminar activo', 500);
+
+  await auditRepo.log({
+    entity_type: 'asset', entity_id: id,
+    action: 'delete', old_values: { code: asset.code, name: asset.name },
+    performed_by: actorId, ip_address: ip,
+  });
+};
+
+module.exports = { list, getById, create, update, changeStatus, assign, getStatusHistory, nextCode, remove };

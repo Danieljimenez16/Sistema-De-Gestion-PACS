@@ -11,6 +11,7 @@ import { ReportsPage } from '../pages/ReportsPage';
 import { UsersPage } from '../pages/UsersPage';
 import { CatalogsPage } from '../pages/CatalogsPage';
 import { ImportPage } from '../pages/ImportPage';
+import { ChangePasswordPage } from '../pages/ChangePasswordPage';
 import { useAuth } from '../context/AuthContext';
 
 // Admin guard
@@ -23,6 +24,7 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  { path: '/change-password', element: <ChangePasswordPage forced /> },
   {
     path: '/',
     element: <MainLayout />,

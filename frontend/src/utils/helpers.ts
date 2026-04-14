@@ -57,11 +57,20 @@ export const ENTITY_LABELS: Record<string, string> = {
 
 export const ACTION_LABELS: Record<string, string> = {
   CREATE: 'Creación',
+  create: 'Creación',
   UPDATE: 'Actualización',
+  update: 'Actualización',
   DELETE: 'Eliminación',
+  delete: 'Eliminación',
   STATUS_CHANGE: 'Cambio de Estado',
+  status_change: 'Cambio de Estado',
   ASSIGN: 'Asignación',
+  assign: 'Asignación',
+  assignment: 'Asignación',
   RELEASE: 'Liberación',
+  release: 'Liberación',
   LOGIN: 'Inicio de Sesión',
+  login: 'Inicio de Sesión',
   LOGOUT: 'Cierre de Sesión',
+  logout: 'Cierre de Sesión',
 };

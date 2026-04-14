@@ -37,4 +37,11 @@ const getAssignments = async (req, res, next) => {
   } catch (err) { return next(err); }
 };
 
-module.exports = { list, getById, create, update, assign, getAssignments };
+const remove = async (req, res, next) => {
+  try {
+    await licenseService.remove(req.params.id, req.user.sub, req.ip);
+    return res.status(204).send();
+  } catch (err) { return next(err); }
+};
+
+module.exports = { list, getById, create, update, remove, assign, getAssignments };

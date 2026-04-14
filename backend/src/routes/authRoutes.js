@@ -8,5 +8,7 @@ const router = Router();
 router.post('/login', loginRules, ctrl.login);
 router.get('/me', authenticate, ctrl.me);
 router.post('/logout', authenticate, ctrl.logout);
+router.post('/change-password', authenticate, ctrl.changePassword);
+router.post('/forgot-password', ctrl.forgotPassword);
 
 module.exports = router;

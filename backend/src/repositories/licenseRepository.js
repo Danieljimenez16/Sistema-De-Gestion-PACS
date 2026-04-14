@@ -3,7 +3,9 @@ const supabase = require('../config/supabase');
 const BASE_SELECT = `
   id, name, vendor, license_key, license_type,
   max_seats, purchase_date, expiry_date, cost,
-  notes, is_active, created_at, updated_at
+  notes, is_active, created_at, updated_at,
+  created_by_user_id,
+  created_by_user:users!licenses_created_by_user_id_fkey(id, full_name, email)
 `.trim();
 
 const ASSIGN_SELECT = `
@@ -58,7 +60,10 @@ const findAssignmentsByLicense = (licenseId) =>
     .eq('license_id', licenseId)
     .order('assigned_at', { ascending: false });
 
+const remove = (id) =>
+  supabase.from('licenses').delete().eq('id', id);
+
 module.exports = {
-  findAll, findById, create, update,
+  findAll, findById, create, update, remove,
   countActiveAssignments, createAssignment, findAssignmentsByLicense,
 };

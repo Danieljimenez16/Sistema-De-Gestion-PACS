@@ -13,8 +13,7 @@ import {
 import { reportService } from '../services';
 import type { DashboardStats } from '../types';
 
-const STATUS_COLORS = ['#22c55e', '#f59e0b', '#ef4444', '#64748b', '#a855f7'];
-const TYPE_COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
+const BLUE_PALETTE = ['#3b82f6', '#2563eb', '#0ea5e9', '#0284c7', '#38bdf8', '#93c5fd'];
 
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color?: string }[]; label?: string }) => {
   if (!active || !payload?.length) return null;
@@ -96,7 +95,7 @@ export const ReportsPage: React.FC = () => {
           <ReportCard
             title="Gestión de Licencias"
             description="Estado de licencias, asientos usados y vencimientos"
-            icon={<Key size={18} className="text-purple-400" />}
+            icon={<Key size={18} className="text-blue-400" />}
             onExport={() => handleExport('licenses')}
             badge={stats?.expiring_soon ? `${stats.expiring_soon} por vencer` : undefined}
           />
@@ -129,8 +128,8 @@ export const ReportsPage: React.FC = () => {
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie data={stats.assets_by_status} cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={3} dataKey="value">
-                    {stats.assets_by_status.map((_, i) => (
-                      <Cell key={i} fill={STATUS_COLORS[i % STATUS_COLORS.length]} />
+                    {stats.assets_by_status.map((entry, i) => (
+                      <Cell key={entry.name} fill={entry.color ?? BLUE_PALETTE[i % BLUE_PALETTE.length]} />
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
@@ -150,8 +149,8 @@ export const ReportsPage: React.FC = () => {
                   <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="value" name="Cantidad" radius={[4, 4, 0, 0]}>
-                    {stats.assets_by_type.map((_, i) => (
-                      <Cell key={i} fill={TYPE_COLORS[i % TYPE_COLORS.length]} />
+                    {stats.assets_by_type.map((entry, i) => (
+                      <Cell key={entry.name} fill={entry.color ?? BLUE_PALETTE[i % BLUE_PALETTE.length]} />
                     ))}
                   </Bar>
                 </BarChart>

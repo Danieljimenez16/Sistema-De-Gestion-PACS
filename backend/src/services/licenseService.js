@@ -21,7 +21,7 @@ const getById = async (id) => {
 };
 
 const create = async (body, actorId, ip) => {
-  const { data, error } = await licenseRepo.create(body);
+  const { data, error } = await licenseRepo.create({ ...body, created_by_user_id: actorId || null });
   if (error) throw new AppError('Error al crear licencia', 500);
 
   await auditRepo.log({
@@ -84,4 +84,18 @@ const getAssignments = async (licenseId) => {
   return data;
 };
 
-module.exports = { list, getById, create, update, assign, getAssignments };
+const remove = async (id, actorId, ip) => {
+  const { data: old } = await licenseRepo.findById(id);
+  if (!old) throw new AppError('Licencia no encontrada', 404);
+
+  const { error } = await licenseRepo.remove(id);
+  if (error) throw new AppError('Error al eliminar licencia', 500);
+
+  await auditRepo.log({
+    entity_type: 'license', entity_id: id,
+    action: 'delete', old_values: { name: old.name },
+    performed_by: actorId, ip_address: ip,
+  });
+};
+
+module.exports = { list, getById, create, update, remove, assign, getAssignments };
