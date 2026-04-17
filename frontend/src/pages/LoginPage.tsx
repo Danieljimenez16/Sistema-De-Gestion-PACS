@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { ShieldCheck, Eye, EyeOff, Lock, Mail, Search, Key, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Button, Input, Alert, Modal } from '../components/ui';
+import { Input, Alert } from '../components/ui';
 import { BlurText, FadeIn, GlowCard } from '../components/animations';
 import { FloatingLines } from '../components/FloatingLines';
-import { authService } from '../services';
+import { ForgotPasswordModal } from '../components/auth/ForgotPasswordModal';
 
 export const LoginPage: React.FC = () => {
   const { user, login } = useAuth();
@@ -15,12 +15,7 @@ export const LoginPage: React.FC = () => {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Forgot password modal state
-  const [showForgot, setShowForgot] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotMsg, setForgotMsg] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   if (user) return <Navigate to="/dashboard" replace />;
 
@@ -38,20 +33,6 @@ export const LoginPage: React.FC = () => {
       setError(e?.message ?? 'Credenciales inválidas');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleForgot = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setForgotLoading(true);
-    setForgotMsg('');
-    try {
-      const res = await authService.forgotPassword(forgotEmail);
-      setForgotMsg(res.data?.message ?? 'Si la cuenta existe, se enviará una solicitud a los administradores.');
-    } catch {
-      setForgotMsg('Si la cuenta existe, se enviará una solicitud a los administradores.');
-    } finally {
-      setForgotLoading(false);
     }
   };
 
@@ -217,7 +198,7 @@ export const LoginPage: React.FC = () => {
               <div className="text-center mt-2">
                 <button
                   type="button"
-                  onClick={() => { setShowForgot(true); setForgotMsg(''); setForgotEmail(''); }}
+                  onClick={() => setShowForgotPassword(true)}
                   className="text-xs text-slate-500 hover:text-blue-400 transition-colors"
                 >
                   ¿Olvidaste tu contraseña?
@@ -236,42 +217,10 @@ export const LoginPage: React.FC = () => {
       </div>
 
       {/* ── Forgot password modal ──────────────────────────────── */}
-      <Modal
-        open={showForgot}
-        onClose={() => setShowForgot(false)}
-        title="Recuperar contraseña"
-        size="sm"
-        footer={
-          forgotMsg ? (
-            <Button variant="primary" onClick={() => setShowForgot(false)}>Cerrar</Button>
-          ) : (
-            <>
-              <Button variant="ghost" onClick={() => setShowForgot(false)}>Cancelar</Button>
-              <Button variant="primary" loading={forgotLoading} onClick={handleForgot as unknown as () => void}>
-                Enviar
-              </Button>
-            </>
-          )
-        }
-      >
-        {forgotMsg ? (
-          <p className="text-sm text-slate-300">{forgotMsg}</p>
-        ) : (
-          <form onSubmit={handleForgot} className="space-y-4">
-            <p className="text-sm text-slate-400">
-              Ingresa tu correo electrónico y un administrador revisará la solicitud si la cuenta existe.
-            </p>
-            <Input
-              label="Correo electrónico"
-              type="email"
-              value={forgotEmail}
-              onChange={e => setForgotEmail(e.target.value)}
-              required
-              icon={<Mail size={16} />}
-            />
-          </form>
-        )}
-      </Modal>
+      <ForgotPasswordModal
+        open={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </div>
   );
 };

@@ -158,32 +158,40 @@ export const UsersPage: React.FC = () => {
     ? users.filter(u => (u.role?.name ?? '').toLowerCase() === roleFilter)
     : users;
 
-  // Role → ChromaGrid gradient/border
-  const roleGradient = (roleName?: string): { gradient: string; borderColor: string } => {
-    const r = (roleName ?? '').toLowerCase();
-    if (r === 'admin')  return { gradient: 'linear-gradient(135deg,#7f1d1d 0%,#450a0a 100%)',  borderColor: 'rgba(220,38,38,0.6)'  };
-    if (r === 'editor') return { gradient: 'linear-gradient(135deg,#78350f 0%,#3c1a00 100%)',  borderColor: 'rgba(217,119,6,0.6)'  };
-    if (r === 'reader') return { gradient: 'linear-gradient(135deg,#134e4a 0%,#042f2e 100%)',  borderColor: 'rgba(13,148,136,0.6)' };
-    return { gradient: 'linear-gradient(135deg,#1e293b 0%,#0f172a 100%)', borderColor: 'rgba(71,85,105,0.5)' };
+  // Get role classes based on role name
+  const getRoleClasses = (roleName?: string): { badge: string; avatar: string; icon: React.ReactNode } => {
+    const role = (roleName ?? '').toLowerCase();
+    if (role === 'admin') {
+      return {
+        badge: 'role-admin-badge',
+        avatar: 'avatar-admin',
+        icon: <Shield size={42} className="role-admin-text" />,
+      };
+    }
+    if (role === 'editor') {
+      return {
+        badge: 'role-editor-badge',
+        avatar: 'avatar-editor',
+        icon: <Edit2 size={42} className="role-editor-text" />,
+      };
+    }
+    return {
+      badge: 'role-reader-badge',
+      avatar: 'avatar-reader',
+      icon: <Eye size={42} className="role-reader-text" />,
+    };
   };
 
   const chromaItems: ChromaItem[] = filteredUsers.map(u => {
-    const { gradient, borderColor } = roleGradient(u.role?.name);
-    const roleKey = (u.role?.name ?? '').toLowerCase();
+    const roleClasses = getRoleClasses(u.role?.name);
     return {
       id: u.id,
       title: u.full_name,
       subtitle: u.email,
       handle: u.is_active ? 'Activo' : 'Inactivo',
       badge: u.role?.name ?? 'Sin rol',
-      gradient, borderColor,
-      icon: (
-        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {roleKey === 'admin'  ? <Shield size={42} color="#fca5a5" /> :
-           roleKey === 'editor' ? <Edit2  size={42} color="#fcd34d" /> :
-                                  <Eye    size={42} color="#5eead4" />}
-        </span>
-      ),
+      className: roleClasses.badge,
+      icon: roleClasses.icon,
       onClick: () => openEdit(u),
     };
   });
