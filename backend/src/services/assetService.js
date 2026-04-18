@@ -57,8 +57,30 @@ const update = async (id, body, actorId, ip) => {
     if (existing.data) throw new AppError(`Serial ${body.serial} ya existe`, 409);
   }
 
-  const { data, error } = await assetRepo.update(id, body);
-  if (error) throw new AppError('Error al actualizar activo', 500);
+  const allowed = [
+  'name', 'code', 'serial', 'description', 'model',
+  'asset_type_id', 'brand_id', 'status_id', 'area_id',
+  'location_id', 'responsible_user_id',
+  'purchase_date', 'warranty_expiry', 'notes',
+];
+const cleanBody = Object.fromEntries(
+  Object.entries(body).filter(([k]) => allowed.includes(k))
+);
+const { data, error } = await assetRepo.update(id, cleanBody);
+if (error) throw new AppError('Error al actualizar activo: ' + error.message, 500);
+
+if (cleanBody.responsible_user_id && cleanBody.responsible_user_id !== old.responsible_user?.id) {
+  const { data: active } = await assignmentRepo.findActiveByAsset(id);
+  if (active) await assignmentRepo.release(active.id);
+  await assignmentRepo.create({
+    asset_id: id,
+    user_id: cleanBody.responsible_user_id,
+    area_id: cleanBody.area_id || old.area?.id || null,
+    location_id: cleanBody.location_id || old.location?.id || null,
+    notes: null,
+    created_by: actorId,
+  });
+}
 
   await auditRepo.log({
     entity_type: 'asset', entity_id: id,
@@ -78,7 +100,7 @@ const changeStatus = async (id, statusId, reason, actorId, ip) => {
 
   await assetRepo.insertStatusHistory({
     asset_id: id,
-    previous_status_id: asset.asset_statuses?.id || null,
+    previous_status_id: asset.status?.id || null,
     new_status_id: statusId,
     changed_by: actorId,
     reason,
@@ -87,7 +109,7 @@ const changeStatus = async (id, statusId, reason, actorId, ip) => {
   await auditRepo.log({
     entity_type: 'asset', entity_id: id,
     action: 'status_change',
-    old_values: { status_id: asset.asset_statuses?.id },
+    old_values: { status_id: asset.status?.id },
     new_values: { status_id: statusId, reason },
     performed_by: actorId, ip_address: ip,
   });
@@ -155,4 +177,12 @@ const remove = async (id, actorId, ip) => {
   });
 };
 
-module.exports = { list, getById, create, update, changeStatus, assign, getStatusHistory, nextCode, remove };
+const getHistory = async (id) => {
+  const [{ data: assignments }, { data: status_history }] = await Promise.all([
+    assignmentRepo.findAllByAsset(id),
+    assetRepo.getStatusHistory(id),
+  ]);
+  return { assignments: assignments ?? [], status_history: status_history ?? [] };
+};
+
+module.exports = { list, getById, create, update, changeStatus, assign, getStatusHistory, getHistory, nextCode, remove };

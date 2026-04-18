@@ -12,6 +12,7 @@ router.get('/next-code', ctrl.nextCode);
 router.get('/', ctrl.list);
 router.get('/:id', ctrl.getById);
 router.get('/:id/status-history', ctrl.getStatusHistory);
+router.get('/:id/history', ctrl.getHistory);
 router.post('/', authorize('admin', 'manager'), createRules, ctrl.create);
 router.put('/:id', authorize('admin', 'manager'), updateRules, ctrl.update);
 router.patch('/:id/status', authorize('admin', 'manager'), statusRules, ctrl.changeStatus);

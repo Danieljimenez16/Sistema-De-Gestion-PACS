@@ -4,12 +4,12 @@ const BASE_SELECT = `
   id, code, serial, name, description, model,
   purchase_date, warranty_expiry, notes, is_deleted,
   created_at, updated_at,
-  asset_types(id, name),
-  brands(id, name),
-  asset_statuses(id, name),
-  locations(id, name),
-  areas(id, name),
-  responsible:users!assets_responsible_user_id_fkey(id, full_name, email)
+  asset_type:asset_types(id, name),
+  brand:brands(id, name),
+  status:asset_statuses(id, name),
+  location:locations(id, name),
+  area:areas(id, name),
+  responsible_user:users!assets_responsible_user_id_fkey(id, full_name, email)
 `.trim();
 
 const findAll = async ({ from, to, search, typeId, statusId, areaId, locationId }) => {

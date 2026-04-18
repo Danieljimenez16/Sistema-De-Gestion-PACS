@@ -58,4 +58,10 @@ const remove = async (req, res, next) => {
   } catch (err) { return next(err); }
 };
 
-module.exports = { list, getById, create, update, changeStatus, assign, getStatusHistory, nextCode, remove };
+const getHistory = async (req, res, next) => {
+  try {
+    return res.status(200).json(ok(await assetService.getHistory(req.params.id)));
+  } catch (err) { return next(err); }
+};
+
+module.exports = { list, getById, create, update, changeStatus, assign, getStatusHistory, getHistory, nextCode, remove };
