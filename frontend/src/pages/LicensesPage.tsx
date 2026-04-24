@@ -9,8 +9,9 @@ import {
 } from '../components/ui';
 import { licenseService } from '../services';
 import type { License, LicenseAssignment } from '../types';
-import { fmt, isExpiringSoon, isExpired } from '../utils/helpers';
+import { fmt, isExpiringSoon, isExpired, getErrorMessage, validateRequiredFields } from '../utils/helpers';
 import { cls } from '../utils/helpers';
+import { useToast } from '../components/Toast';
 
 // PDF imports (jspdf v4 + jspdf-autotable v5)
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -242,6 +243,7 @@ const LicenseCard: React.FC<{
 // ─── LicensesPage ─────────────────────────────────────────────────────────────
 
 export const LicensesPage: React.FC = () => {
+  const { addToast } = useToast();
   const [licenses, setLicenses] = useState<License[]>([]);
   const [meta, setMeta]         = useState({ total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading]   = useState(true);
@@ -308,24 +310,42 @@ export const LicensesPage: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    const validationError = validateRequiredFields([{ label: 'Nombre', value: form.name }]);
+    if (validationError) {
+      setFormError(validationError);
+      addToast('error', validationError);
+      return;
+    }
     setSaving(true); setFormError('');
     try {
       await licenseService.create(form);
       setShowCreate(false); setForm({}); load();
+      addToast('success', 'Licencia creada correctamente.');
     } catch (err: unknown) {
-      setFormError((err as { message?: string })?.message ?? 'Error al crear');
+      const message = getErrorMessage(err, 'Error al crear');
+      setFormError(message);
+      addToast('error', message);
     } finally { setSaving(false); }
   };
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTarget) return;
+    const validationError = validateRequiredFields([{ label: 'Nombre', value: form.name }]);
+    if (validationError) {
+      setFormError(validationError);
+      addToast('error', validationError);
+      return;
+    }
     setSaving(true); setFormError('');
     try {
       await licenseService.update(editTarget.id, form);
       setEditTarget(null); setForm({}); load();
+      addToast('success', 'Licencia actualizada correctamente.');
     } catch (err: unknown) {
-      setFormError((err as { message?: string })?.message ?? 'Error al actualizar');
+      const message = getErrorMessage(err, 'Error al actualizar');
+      setFormError(message);
+      addToast('error', message);
     } finally { setSaving(false); }
   };
 

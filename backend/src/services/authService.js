@@ -77,12 +77,27 @@ const login = async ({ email, password, ip }) => {
   if (!profile.is_active) throw new AppError('Usuario inactivo', 403);
 
   // 3. Issue our own JWT (frontend stays unchanged)
+  // Resolve role name — the PostgREST join (roles(id,name)) can return null when
+  // RLS blocks the read with the anon key.  We fall back to a direct service-role
+  // lookup so the token ALWAYS carries a non-empty role string.
+  let roleName = profile.roles?.name;
+  let roleId   = profile.roles?.id ?? profile.role_id;
+
+  if (!roleName && profile.role_id) {
+    const { data: roleData } = await supabase
+      .from('roles')
+      .select('id, name')
+      .eq('id', profile.role_id)
+      .single();
+    if (roleData) { roleName = roleData.name; roleId = roleData.id; }
+  }
+
   const payload = {
     sub: profile.id,
     email: authData.user.email,
     fullName: profile.full_name,
-    role: profile.roles?.name,
-    roleId: profile.roles?.id,
+    role: (roleName ?? 'viewer').toLowerCase(),
+    roleId: roleId ?? null,
     mustChangePassword: profile.must_change_password === true ||
       authData.user.app_metadata?.must_change_password === true ||
       authData.user.user_metadata?.must_change_password === true,
@@ -101,8 +116,23 @@ const login = async ({ email, password, ip }) => {
 const me = async (userId) => {
   const { data, error } = await userRepo.findById(userId);
   if (error || !data) throw new AppError('Usuario no encontrado', 404);
+
+  // Ensure role is always returned as an object { id, name }
+  // even when the PostgREST join alias is `roles` instead of `role`
   const { roles, ...rest } = data;
-  return { ...rest, role: roles };
+  let role = roles ?? null;
+
+  // Fallback: direct lookup if join returned nothing but we have role_id
+  if (!role && rest.role_id) {
+    const { data: roleData } = await supabase
+      .from('roles')
+      .select('id, name')
+      .eq('id', rest.role_id)
+      .single();
+    role = roleData ?? null;
+  }
+
+  return { ...rest, role };
 };
 
 // ─── changePassword ───────────────────────────────────────────────────────────

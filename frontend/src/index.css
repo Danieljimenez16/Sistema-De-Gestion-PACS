@@ -592,10 +592,9 @@
 
 /* Glow card */
 .glow-card {
-  transition: box-shadow 0.3s, border-color 0.3s;
+  transition: box-shadow 0.3s;
 }
 .glow-card:hover {
-  border-color: rgba(59,130,246,0.45) !important;
   box-shadow: 0 0 28px rgba(59,130,246,0.12);
 }
 
@@ -633,15 +632,14 @@
   width: 100%;
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid #1e3a8a;
+  border: none;
   background: #0b1120;
   font-weight: 300;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: transform 0.18s ease-out, box-shadow 0.2s ease;
   --glow-x: 50%; --glow-y: 50%;
   --glow-intensity: 0; --glow-radius: 200px;
 }
-.magic-bento-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.18); }
 .magic-bento-card__header {
   display: flex; gap: 0.6em; justify-content: space-between; color: #fff;
 }

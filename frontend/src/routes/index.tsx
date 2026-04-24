@@ -10,7 +10,6 @@ import { AuditPage } from '../pages/AuditPage';
 import { ReportsPage } from '../pages/ReportsPage';
 import { UsersPage } from '../pages/UsersPage';
 import { CatalogsPage } from '../pages/CatalogsPage';
-import { ImportPage } from '../pages/ImportPage';
 import { ChangePasswordPage } from '../pages/ChangePasswordPage';
 import { useAuth } from '../context/AuthContext';
 
@@ -36,7 +35,6 @@ const router = createBrowserRouter([
       { path: 'licenses', element: <LicensesPage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'reports', element: <ReportsPage /> },
-      { path: 'import', element: <ImportPage /> },
       {
         path: 'users',
         element: <AdminRoute><UsersPage /></AdminRoute>,

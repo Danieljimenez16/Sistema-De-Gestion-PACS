@@ -8,12 +8,14 @@ import {
 import { AssetForm } from '../components/assets/AssetForm';
 import { assetService, catalogService, reportService } from '../services';
 import type { Asset, AssetFilters, AssetType, AssetStatus, Area } from '../types';
-import { fmt, truncate, downloadCSV } from '../utils/helpers';
+import { fmt, truncate, downloadCSV, getErrorMessage } from '../utils/helpers';
+import { useToast } from '../components/Toast';
 
 const LIMIT = 20;
 
 export const AssetsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [meta, setMeta] = useState({ total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
@@ -75,10 +77,12 @@ export const AssetsPage: React.FC = () => {
     try {
       await assetService.create(data);
       setShowCreate(false);
+      addToast('success', 'Activo creado correctamente.');
       load();
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setCreateError(e?.message ?? 'Error al crear activo');
+      const message = getErrorMessage(err, 'Error al crear activo');
+      setCreateError(message);
+      addToast('error', message);
     } finally {
       setSaving(false);
     }

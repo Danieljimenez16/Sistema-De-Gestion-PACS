@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Monitor, Key, FileSearch, BarChart3,
-  Users, Settings, Upload, ChevronLeft, ChevronRight,
+  Users, Settings, ChevronLeft, ChevronRight,
   LogOut, ShieldCheck,
 } from 'lucide-react';
 import { cls } from '../utils/helpers';
@@ -22,7 +22,6 @@ const NAV: NavItem[] = [
   { label: 'Licencias', path: '/licenses', icon: <Key size={18} /> },
   { label: 'Auditoría', path: '/audit', icon: <FileSearch size={18} />, divider: true },
   { label: 'Reportes', path: '/reports', icon: <BarChart3 size={18} /> },
-  { label: 'Importar', path: '/import', icon: <Upload size={18} />, divider: true },
   { label: 'Usuarios', path: '/users', icon: <Users size={18} />, adminOnly: true },
   { label: 'Catálogos', path: '/catalogs', icon: <Settings size={18} />, adminOnly: true },
 ];
@@ -32,7 +31,7 @@ export const Sidebar: React.FC = () => {
   const { pathname } = useLocation();
   const { user, logout, isAdmin } = useAuth();
 
-  const items = NAV.filter(n => !n.adminOnly || isAdmin);
+  const items = NAV.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <aside className={cls(

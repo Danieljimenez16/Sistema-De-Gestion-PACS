@@ -5,6 +5,8 @@ import { FadeIn } from '../animations';
 import { catalogService, assetService } from '../../services';
 import type { Asset, AssetType, AssetStatus, Brand, Area, Location, User } from '../../types';
 import { userService } from '../../services';
+import { fmt, validateRequiredFields } from '../../utils/helpers';
+import { useToast } from '../Toast';
 
 interface AssetFormProps {
   initial?: Partial<Asset>;
@@ -18,6 +20,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({
   initial = {}, onSubmit, onCancel, loading, error,
 }) => {
   const isCreate = !initial.id;
+  const { addToast } = useToast();
 
   const [form, setForm] = useState<Partial<Asset>>(() => {
     // Base defaults
@@ -90,6 +93,19 @@ export const AssetForm: React.FC<AssetFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const validationError = validateRequiredFields([
+      { label: 'Código de Activo', value: form.code },
+      { label: 'Nombre del Activo', value: form.name },
+      { label: 'Tipo de Activo', value: form.asset_type_id },
+      { label: 'Estado', value: form.status_id },
+    ]);
+
+    if (validationError) {
+      addToast('error', validationError);
+      return;
+    }
+
     const clean: Partial<Asset> = {};
     (Object.entries(form) as [keyof Asset, unknown][]).forEach(([k, v]) => {
       if (v !== '') (clean as Record<string, unknown>)[k] = v;
@@ -189,6 +205,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({
             onChange={set('asset_type_id')}
             options={toOpts(catalogs.types)}
             placeholder="Seleccionar tipo…"
+            required
           />
           <Select
             label="Marca"
@@ -216,12 +233,14 @@ export const AssetForm: React.FC<AssetFormProps> = ({
             type="date"
             value={form.purchase_date ?? ''}
             onChange={set('purchase_date')}
+            hint={form.purchase_date ? fmt.date(form.purchase_date) : undefined}
           />
           <Input
             label="Vencimiento de Garantía"
             type="date"
             value={form.warranty_expiry ?? ''}
             onChange={set('warranty_expiry')}
+            hint={form.warranty_expiry ? fmt.date(form.warranty_expiry) : undefined}
           />
         </div>
       </FadeIn>
@@ -232,6 +251,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({
           value={form.status_id ?? ''}
           onChange={set('status_id')}
           options={toOpts(catalogs.statuses)}
+          required
           placeholder="Seleccionar estado…"
         />
       </FadeIn>

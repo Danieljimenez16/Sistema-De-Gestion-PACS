@@ -88,6 +88,8 @@ if (cleanBody.responsible_user_id && cleanBody.responsible_user_id !== old.respo
     user_id: cleanBody.responsible_user_id,
     area_id: cleanBody.area_id || old.area_id || null,
     location_id: cleanBody.location_id || old.location_id || null,
+    created_by: actorId,
+  });
 }
 
   await auditRepo.log({

@@ -28,6 +28,26 @@ export const truncate = (str: string, len = 40): string =>
 export const cls = (...classes: (string | undefined | null | false)[]): string =>
   classes.filter(Boolean).join(' ');
 
+export const getErrorMessage = (error: unknown, fallback: string): string =>
+  (error as { message?: string })?.message ?? fallback;
+
+export const sanitizeHumanName = (value: string): string =>
+  value.replace(/\d+/g, '');
+
+export const validateRequiredFields = (fields: Array<{ label: string; value: unknown }>): string | null => {
+  const missing = fields.find(({ value }) => String(value ?? '').trim() === '');
+  return missing ? `${missing.label} es obligatorio.` : null;
+};
+
+const HUMAN_NAME_REGEX = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s'.-]*$/;
+
+export const validateHumanName = (label: string, value: string): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return `${label} es obligatorio.`;
+  if (!HUMAN_NAME_REGEX.test(trimmed)) return `${label} no debe contener números ni caracteres no permitidos.`;
+  return null;
+};
+
 export const statusColor = (name: string): string => {
   const map: Record<string, string> = {
     'Activo': 'status-active',

@@ -9,7 +9,8 @@ import { ChromaGrid } from '../components/ChromaGrid';
 import type { ChromaItem } from '../components/ChromaGrid';
 import { userService, catalogService } from '../services';
 import type { User, PasswordChangeRequest } from '../types';
-import { fmt } from '../utils/helpers';
+import { fmt, getErrorMessage, sanitizeHumanName, validateHumanName, validateRequiredFields } from '../utils/helpers';
+import { useToast } from '../components/Toast';
 
 const LIMIT = 20;
 const emptyForm = {
@@ -26,6 +27,7 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
 };
 
 export const UsersPage: React.FC = () => {
+  const { addToast } = useToast();
   const [users, setUsers]   = useState<User[]>([]);
   const [meta, setMeta]     = useState({ total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
@@ -92,6 +94,18 @@ export const UsersPage: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    const requiredError = validateRequiredFields([
+      { label: 'Nombre completo', value: form.full_name },
+      { label: 'Correo electrónico', value: form.email },
+      { label: 'Rol', value: form.role_id },
+    ]);
+    const nameError = validateHumanName('Nombre completo', form.full_name);
+    const validationError = requiredError ?? nameError;
+    if (validationError) {
+      setFormError(validationError);
+      addToast('error', validationError);
+      return;
+    }
     setSaving(true); setFormError('');
     try {
       const res = await userService.create({
@@ -110,16 +124,26 @@ export const UsersPage: React.FC = () => {
         setCopiedPassword(false);
       }
       setForm(emptyForm);
+      addToast('success', 'Usuario creado correctamente.');
       load();
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setFormError(e?.message ?? 'Error al crear usuario');
+      const message = getErrorMessage(err, 'Error al crear usuario');
+      setFormError(message);
+      addToast('error', message);
     } finally { setSaving(false); }
   };
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showEdit) return;
+    const requiredError = validateRequiredFields([{ label: 'Nombre completo', value: form.full_name }]);
+    const nameError = validateHumanName('Nombre completo', form.full_name);
+    const validationError = requiredError ?? nameError;
+    if (validationError) {
+      setFormError(validationError);
+      addToast('error', validationError);
+      return;
+    }
     setSaving(true); setFormError('');
     try {
       await userService.update(showEdit.id, {
@@ -127,9 +151,11 @@ export const UsersPage: React.FC = () => {
         role_id: form.role_id || undefined,
       });
       setShowEdit(null); load();
+      addToast('success', 'Usuario actualizado correctamente.');
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setFormError(e?.message ?? 'Error al actualizar usuario');
+      const message = getErrorMessage(err, 'Error al actualizar usuario');
+      setFormError(message);
+      addToast('error', message);
     } finally { setSaving(false); }
   };
 
@@ -396,7 +422,7 @@ export const UsersPage: React.FC = () => {
         <form onSubmit={handleCreate} className="space-y-4">
           {formError && <Alert type="error" message={formError} />}
           <p className="text-xs text-slate-500">Se generará una contraseña temporal automáticamente. El usuario deberá cambiarla al iniciar sesión.</p>
-          <Input label="Nombre completo" value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} required />
+          <Input label="Nombre completo" value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: sanitizeHumanName(e.target.value) }))} required />
           <Input label="Correo electrónico" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
           <div className="flex flex-col gap-1.5">
             <Select
@@ -436,7 +462,7 @@ export const UsersPage: React.FC = () => {
       >
         <form onSubmit={handleEdit} className="space-y-4">
           {formError && <Alert type="error" message={formError} />}
-          <Input label="Nombre completo" value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} required />
+          <Input label="Nombre completo" value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: sanitizeHumanName(e.target.value) }))} required />
           <Input label="Correo electrónico" type="email" value={form.email} disabled className="opacity-50" />
           <div className="flex flex-col gap-1.5">
             <Select

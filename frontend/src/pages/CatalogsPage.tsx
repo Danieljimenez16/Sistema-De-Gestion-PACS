@@ -6,7 +6,8 @@ import {
 } from '../components/ui';
 import { catalogService } from '../services';
 import type { Area, Location, AssetType, Brand } from '../types';
-import { fmt } from '../utils/helpers';
+import { fmt, getErrorMessage, sanitizeHumanName, validateHumanName, validateRequiredFields } from '../utils/helpers';
+import { useToast } from '../components/Toast';
 
 type CatalogTab = 'areas' | 'locations' | 'asset_types' | 'brands';
 
@@ -18,6 +19,7 @@ const TAB_LABELS: Record<CatalogTab, string> = {
 };
 
 export const CatalogsPage: React.FC = () => {
+  const { addToast } = useToast();
   const [tab, setTab] = useState<CatalogTab>('areas');
   const [loading, setLoading] = useState(true);
 
@@ -67,6 +69,14 @@ export const CatalogsPage: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    const requiredError = validateRequiredFields([{ label: 'Nombre', value: form.name }]);
+    const nameError = validateHumanName('Nombre', form.name);
+    const validationError = requiredError ?? nameError;
+    if (validationError) {
+      setFormError(validationError);
+      addToast('error', validationError);
+      return;
+    }
     setSaving(true);
     setFormError('');
     try {
@@ -76,10 +86,12 @@ export const CatalogsPage: React.FC = () => {
       else if (tab === 'asset_types') await catalogService.createAssetType(payload);
       else if (tab === 'brands') await catalogService.createBrand(payload);
       setShowCreate(false);
+      addToast('success', 'Catálogo creado correctamente.');
       loadAll();
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setFormError(e?.message ?? 'Error al crear');
+      const message = getErrorMessage(err, 'Error al crear');
+      setFormError(message);
+      addToast('error', message);
     } finally {
       setSaving(false);
     }
@@ -88,6 +100,14 @@ export const CatalogsPage: React.FC = () => {
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showEdit) return;
+    const requiredError = validateRequiredFields([{ label: 'Nombre', value: form.name }]);
+    const nameError = validateHumanName('Nombre', form.name);
+    const validationError = requiredError ?? nameError;
+    if (validationError) {
+      setFormError(validationError);
+      addToast('error', validationError);
+      return;
+    }
     setSaving(true);
     setFormError('');
     try {
@@ -97,10 +117,12 @@ export const CatalogsPage: React.FC = () => {
       else if (tab === 'asset_types') await catalogService.updateAssetType(showEdit.id, payload);
       else if (tab === 'brands') await catalogService.updateBrand(showEdit.id, payload);
       setShowEdit(null);
+      addToast('success', 'Catálogo actualizado correctamente.');
       loadAll();
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setFormError(e?.message ?? 'Error al actualizar');
+      const message = getErrorMessage(err, 'Error al actualizar');
+      setFormError(message);
+      addToast('error', message);
     } finally {
       setSaving(false);
     }
@@ -226,7 +248,7 @@ export const CatalogsPage: React.FC = () => {
       >
         <form onSubmit={handleCreate} className="space-y-4">
           {formError && <Alert type="error" message={formError} />}
-          <Input label="Nombre" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+          <Input label="Nombre" value={form.name} onChange={e => setForm(f => ({ ...f, name: sanitizeHumanName(e.target.value) }))} required />
           {tab !== 'brands' && (
             <Textarea label="Descripción" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
           )}
@@ -257,7 +279,7 @@ export const CatalogsPage: React.FC = () => {
       >
         <form onSubmit={handleEdit} className="space-y-4">
           {formError && <Alert type="error" message={formError} />}
-          <Input label="Nombre" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+          <Input label="Nombre" value={form.name} onChange={e => setForm(f => ({ ...f, name: sanitizeHumanName(e.target.value) }))} required />
           {tab !== 'brands' && (
             <Textarea label="Descripción" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
           )}

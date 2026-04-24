@@ -11,13 +11,15 @@ import {
 import { AssetForm } from '../components/assets/AssetForm';
 import { assetService, catalogService, userService } from '../services';
 import type { Asset, AssetStatus, Assignment, StatusHistory, Area, Location, User } from '../types';
-import { fmt, isExpiringSoon } from '../utils/helpers';
+import { fmt, isExpiringSoon, getErrorMessage } from '../utils/helpers';
+import { useToast } from '../components/Toast';
 
 type Tab = 'info' | 'history' | 'assignments';
 
 export const AssetDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { addToast } = useToast();
 
   const [asset, setAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,16 +99,22 @@ export const AssetDetailPage: React.FC = () => {
       await assetService.update(id, data);
       await loadAsset();
       setShowEdit(false);
+      addToast('success', 'Activo actualizado correctamente.');
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setEditError(e?.message ?? 'Error al actualizar');
+      const message = getErrorMessage(err, 'Error al actualizar');
+      setEditError(message);
+      addToast('error', message);
     } finally {
       setSaving(false);
     }
   };
 
   const handleStatusChange = async () => {
-    if (!id || !newStatusId) return;
+    if (!id) return;
+    if (!newStatusId) {
+      addToast('error', 'Debes seleccionar un nuevo estado.');
+      return;
+    }
     setStatusSaving(true);
     setStatusError('');
     try {
@@ -115,9 +123,11 @@ export const AssetDetailPage: React.FC = () => {
       setShowStatusChange(false);
       setNewStatusId('');
       setStatusReason('');
+      addToast('success', 'Estado actualizado correctamente.');
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setStatusError(e?.message ?? 'Error al cambiar estado');
+      const message = getErrorMessage(err, 'Error al cambiar estado');
+      setStatusError(message);
+      addToast('error', message);
     } finally {
       setStatusSaving(false);
     }
@@ -137,9 +147,11 @@ export const AssetDetailPage: React.FC = () => {
       await Promise.all([loadAsset(), loadHistory()]);
       setShowAssign(false);
       setAssignForm({ user_id: '', area_id: '', location_id: '', notes: '' });
+      addToast('success', 'Asignación actualizada correctamente.');
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setAssignError(e?.message ?? 'Error al asignar activo');
+      const message = getErrorMessage(err, 'Error al asignar activo');
+      setAssignError(message);
+      addToast('error', message);
     } finally {
       setAssignSaving(false);
     }
@@ -301,13 +313,13 @@ export const AssetDetailPage: React.FC = () => {
       {tab === 'history' && (
         <div className="space-y-3">
           {historyLoading ? <FullPageSpinner /> : (
-            history?.status_history.length === 0 ? (
+            !history || history.status_history.length === 0 ? (
               <div className="text-center py-12 text-slate-500 text-sm">Sin historial de estados</div>
             ) : (
               <div className="relative">
                 <div className="absolute left-5 top-0 bottom-0 w-px bg-slate-700" />
                 <div className="space-y-4">
-                  {history?.status_history.map((h) => (
+                  {history.status_history.map((h) => (
                     <div key={h.id} className="relative flex items-start gap-4 pl-12">
                       <div className="absolute left-3.5 w-3 h-3 rounded-full bg-blue-500 border-2 border-slate-900 mt-1" />
                       <Card className="flex-1">
@@ -352,10 +364,10 @@ export const AssetDetailPage: React.FC = () => {
             </Button>
           </div>
           {historyLoading ? <FullPageSpinner /> : (
-            history?.assignments.length === 0 ? (
+            !history || history.assignments.length === 0 ? (
               <div className="text-center py-12 text-slate-500 text-sm">Sin historial de asignaciones</div>
             ) : (
-              history?.assignments.map(a => (
+              history.assignments.map(a => (
                 <Card key={a.id}>
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">

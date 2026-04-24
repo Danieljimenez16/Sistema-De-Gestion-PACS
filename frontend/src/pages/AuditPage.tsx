@@ -4,22 +4,11 @@ import {
   PageHeader, Table, Pagination, Badge, Modal,
   Select, Input, Button, Card,
 } from '../components/ui';
-import { Folder } from '../components/Folder';
-import { FadeIn } from '../components/animations';
 import { auditService } from '../services';
 import type { AuditEvent, AuditFilters } from '../types';
 import { fmt, ACTION_LABELS, ENTITY_LABELS } from '../utils/helpers';
 
 const LIMIT = 30;
-
-// Folder configs per entity type
-const ENTITY_FOLDERS: { key: string; label: string; color: string }[] = [
-  { key: 'asset',              label: 'Activos',          color: '#3b82f6' },
-  { key: 'user',               label: 'Usuarios',         color: '#8b5cf6' },
-  { key: 'license',            label: 'Licencias',        color: '#10b981' },
-  { key: 'assignment',         label: 'Asignaciones',     color: '#f59e0b' },
-  { key: 'license_assignment', label: 'Lic. Asignadas',   color: '#ec4899' },
-];
 
 const ACTION_VARIANT: Record<string, 'active' | 'info' | 'warning' | 'retired' | 'stored' | 'default'> = {
   CREATE: 'active',
@@ -128,53 +117,12 @@ export const AuditPage: React.FC = () => {
     },
   ];
 
-  // Group events by entity_type for folder papers
-  const byEntity = (key: string) =>
-    events.filter(e => e.entity_type === key).slice(0, 3);
-
   return (
     <div className="space-y-5">
       <PageHeader
         title="Registro de Auditoría"
         subtitle={`${meta.total} eventos registrados`}
       />
-
-      {/* ── Entity Folders ───────────────────────────────────── */}
-      <FadeIn delay={0} direction="up">
-        <div className="flex items-end gap-5 px-1 py-3 overflow-x-auto pb-4">
-          {ENTITY_FOLDERS.map((ef, i) => {
-            const isActive = filters.entity_type === ef.key;
-            const papers = byEntity(ef.key).map(ev => (
-              <span key={ev.id}>
-                {ACTION_LABELS[ev.action] ?? ev.action}
-                <br />
-                <span style={{ fontSize: 7 }}>{fmt.datetime(ev.performed_at)}</span>
-              </span>
-            ));
-            return (
-              <FadeIn key={ef.key} delay={i * 60} direction="up">
-                <div className="flex flex-col items-center gap-2">
-                  <Folder
-                    color={ef.color}
-                    size={isActive ? 1.25 : 0.95}
-                    items={isActive ? papers : []}
-                    label={ef.label}
-                    onClick={() => setF('entity_type', isActive ? '' : ef.key)}
-                  />
-                  {isActive && (
-                    <span
-                      className="text-xs font-semibold px-2 py-0.5 rounded-full text-white"
-                      style={{ background: ef.color }}
-                    >
-                      activo
-                    </span>
-                  )}
-                </div>
-              </FadeIn>
-            );
-          })}
-        </div>
-      </FadeIn>
 
       {/* Filters */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-slate-800/50 border border-slate-700 rounded-xl">

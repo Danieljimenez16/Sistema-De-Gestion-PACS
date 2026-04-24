@@ -190,30 +190,40 @@ export interface AuditEvent {
   notes?: string;
 }
 
-export interface Import {
-  id: string;
-  file_name?: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  total_rows?: number;
-  processed_rows: number;
-  error_rows: number;
-  imported_by?: string;
-  imported_by_user?: User;
-  started_at: string;
-  finished_at?: string;
-  notes?: string;
-}
-
 export interface ImportPreviewRow {
   [key: string]: unknown;
   _error?: string;
   _row?: number;
+  _payload?: Record<string, unknown>;
 }
 
 export interface ImportPreview {
+  import_id?: string;
   rows: ImportPreviewRow[];
   errors: ImportPreviewRow[];
+  total: number;
+  valid: number;
+  invalid: number;
+}
+
+export interface ImportCommitResult {
   import_id: string;
+  processed_rows: number;
+  error_rows: number;
+  skipped: number;
+  errors: ImportPreviewRow[];
+}
+
+export interface ImportRecord {
+  id: string;
+  status: 'processing' | 'completed' | 'failed';
+  total_rows?: number;
+  processed_rows: number;
+  error_rows: number;
+  file_name?: string;
+  imported_by?: string;
+  started_at: string;
+  finished_at?: string;
 }
 
 // ─── API contracts ────────────────────────────────────────────────────────────

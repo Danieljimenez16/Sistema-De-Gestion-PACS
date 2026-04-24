@@ -4,31 +4,24 @@ const { handleValidation } = require('./authValidator');
 const HUMAN_NAME_REGEX = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s'.-]*$/;
 
 const createRules = [
-  body('email').isEmail().withMessage('Email inválido'),
-  body('full_name')
+  body('name')
     .trim()
     .notEmpty().withMessage('Nombre requerido')
     .bail()
     .matches(HUMAN_NAME_REGEX).withMessage('El nombre no debe contener números ni caracteres no permitidos'),
-  body('role_id').isUUID().withMessage('role_id debe ser UUID válido'),
+  body('area_id').optional().isUUID().withMessage('area_id inválido'),
   handleValidation,
 ];
 
 const updateRules = [
-  body('email').optional().isEmail().withMessage('Email inválido'),
-  body('full_name')
+  body('name')
     .optional()
     .trim()
     .notEmpty().withMessage('Nombre no puede estar vacío')
     .bail()
     .matches(HUMAN_NAME_REGEX).withMessage('El nombre no debe contener números ni caracteres no permitidos'),
-  body('role_id').optional().isUUID().withMessage('role_id debe ser UUID válido'),
+  body('area_id').optional().isUUID().withMessage('area_id inválido'),
   handleValidation,
 ];
 
-const statusRules = [
-  body('is_active').isBoolean().withMessage('is_active debe ser boolean'),
-  handleValidation,
-];
-
-module.exports = { createRules, updateRules, statusRules };
+module.exports = { createRules, updateRules };

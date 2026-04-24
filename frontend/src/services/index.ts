@@ -3,7 +3,7 @@ import type {
   AuthUser, LoginCredentials, Asset, AssetFilters,
   License, LicenseAssignment, AuditEvent, AuditFilters,
   User, Area, Location, AssetType, AssetStatus, Brand,
-  Assignment, DashboardStats, Import, ImportPreview,
+  Assignment, DashboardStats, ImportPreview, ImportCommitResult, ImportRecord,
   PaginatedResponse, ApiResponse, PasswordChangeRequest,
   UserPasswordResponse, ResetPasswordResponse,
 } from '../types';
@@ -143,20 +143,17 @@ export const reportService = {
     api.get<ApiResponse<{ items: { name: string; value: number }[] }>>('/reports/assets/by-area'),
 };
 
-// ─── Imports ─────────────────────────────────────────────────────────────────
 export const importService = {
-  /**
-   * Send parsed CSV rows (as JSON) for server-side validation.
-   * Returns import_id + valid rows + error rows.
-   */
   preview: (rows: Record<string, unknown>[]) =>
     api.post<ApiResponse<ImportPreview>>('/imports/assets/preview', { rows }),
-  /**
-   * Commit the valid rows obtained from preview.
-   * import_id ties this to the pending import record created by preview.
-   */
-  commit: (importId: string, rows: Record<string, unknown>[]) =>
-    api.post<ApiResponse<Import>>('/imports/assets/commit', { import_id: importId, rows }),
+  commit: (rows: Record<string, unknown>[], fileName?: string, importId?: string) =>
+    api.post<ApiResponse<ImportCommitResult>>('/imports/assets/commit', {
+      rows,
+      file_name: fileName,
+      ...(importId ? { import_id: importId } : {}),
+    }),
   list: () =>
-    api.get<ApiResponse<Import[]>>('/imports'),
+    api.get<ApiResponse<ImportRecord[]>>('/imports'),
+  get: (id: string) =>
+    api.get<ApiResponse<ImportRecord>>(`/imports/${id}`),
 };
