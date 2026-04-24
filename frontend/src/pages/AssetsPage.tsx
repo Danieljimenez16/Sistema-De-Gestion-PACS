@@ -6,9 +6,9 @@ import {
   StatusBadge, Modal, Alert, Select, ConfirmDialog,
 } from '../components/ui';
 import { AssetForm } from '../components/assets/AssetForm';
-import { assetService, catalogService } from '../services';
+import { assetService, catalogService, reportService } from '../services';
 import type { Asset, AssetFilters, AssetType, AssetStatus, Area } from '../types';
-import { fmt, truncate } from '../utils/helpers';
+import { fmt, truncate, downloadCSV } from '../utils/helpers';
 
 const LIMIT = 20;
 
@@ -25,6 +25,7 @@ export const AssetsPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Asset | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Catalog state for filter dropdowns
   const [types, setTypes] = useState<AssetType[]>([]);
@@ -91,6 +92,39 @@ export const AssetsPage: React.FC = () => {
       setDeleteTarget(null);
       load();
     } catch { /* ignore */ } finally { setDeleting(false); }
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await reportService.assetsExport(filters);
+      const data = Array.isArray(res.data) ? res.data : [];
+      if (!data.length) { alert('No hay datos para exportar con los filtros aplicados.'); return; }
+      const flat = data.map((row) => {
+        const r = row as Record<string, unknown>;
+        return {
+          Código: r.code,
+          Serial: r.serial,
+          Nombre: r.name,
+          Tipo: (r.asset_types as Record<string, unknown>)?.name ?? '',
+          Marca: (r.brands as Record<string, unknown>)?.name ?? '',
+          Modelo: r.model,
+          Estado: (r.asset_statuses as Record<string, unknown>)?.name ?? '',
+          Área: (r.areas as Record<string, unknown>)?.name ?? '',
+          Ubicación: (r.locations as Record<string, unknown>)?.name ?? '',
+          Responsable: (r.responsible as Record<string, unknown>)?.full_name ?? '',
+          'Correo Responsable': (r.responsible as Record<string, unknown>)?.email ?? '',
+          'Fecha Compra': r.purchase_date,
+          'Garantía hasta': r.warranty_expiry,
+          Notas: r.notes,
+        };
+      });
+      downloadCSV(flat, `inventario_activos_${new Date().toISOString().slice(0, 10)}.csv`);
+    } catch {
+      alert('No se pudo exportar. Verifica la conexión con el servidor.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const columns = [
@@ -177,7 +211,7 @@ export const AssetsPage: React.FC = () => {
             <Button variant="ghost" size="sm" icon={<RefreshCw size={14} />} onClick={load}>
               Actualizar
             </Button>
-            <Button variant="outline" size="sm" icon={<Download size={14} />}>
+            <Button variant="outline" size="sm" icon={<Download size={14} />} loading={exporting} onClick={handleExport}>
               Exportar
             </Button>
             <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowCreate(true)}>

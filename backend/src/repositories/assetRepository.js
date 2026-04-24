@@ -2,6 +2,7 @@ const supabase = require('../config/supabase');
 
 const BASE_SELECT = `
   id, code, serial, name, description, model,
+  asset_type_id, brand_id, status_id, location_id, area_id, responsible_user_id,
   purchase_date, warranty_expiry, notes, is_deleted,
   created_at, updated_at,
   asset_type:asset_types(id, name),

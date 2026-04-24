@@ -9,7 +9,9 @@ const list = async (query) => {
     entityType: query.entity_type,
     entityId: query.entity_id,
     action: query.action,
-    userId: query.user_id,
+    userId: query.performed_by,
+    dateFrom: query.from,
+    dateTo: query.to,
   });
   if (error) throw new AppError('Error al obtener auditoría', 500);
   return buildPaginatedResponse(data, count, page, limit);

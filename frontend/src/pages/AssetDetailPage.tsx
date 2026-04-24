@@ -2,15 +2,15 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Edit, RefreshCw, History, UserCheck,
-  Info, AlertTriangle,
+  Info, AlertTriangle, UserPlus,
 } from 'lucide-react';
 import {
   Button, StatusBadge, Badge, Modal, Select, Textarea,
   Card, PageHeader, FullPageSpinner, Alert,
 } from '../components/ui';
 import { AssetForm } from '../components/assets/AssetForm';
-import { assetService, catalogService } from '../services';
-import type { Asset, AssetStatus, Assignment, StatusHistory } from '../types';
+import { assetService, catalogService, userService } from '../services';
+import type { Asset, AssetStatus, Assignment, StatusHistory, Area, Location, User } from '../types';
 import { fmt, isExpiringSoon } from '../utils/helpers';
 
 type Tab = 'info' | 'history' | 'assignments';
@@ -36,6 +36,15 @@ export const AssetDetailPage: React.FC = () => {
   const [statusReason, setStatusReason] = useState('');
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState('');
+
+  // Assignment modal state
+  const [showAssign, setShowAssign] = useState(false);
+  const [assignUsers, setAssignUsers] = useState<User[]>([]);
+  const [assignAreas, setAssignAreas] = useState<Area[]>([]);
+  const [assignLocations, setAssignLocations] = useState<Location[]>([]);
+  const [assignForm, setAssignForm] = useState({ user_id: '', area_id: '', location_id: '', notes: '' });
+  const [assignSaving, setAssignSaving] = useState(false);
+  const [assignError, setAssignError] = useState('');
 
   const loadAsset = useCallback(async () => {
     if (!id) return;
@@ -69,6 +78,15 @@ export const AssetDetailPage: React.FC = () => {
 
   useEffect(() => {
     catalogService.assetStatuses().then(r => setStatuses(r.data ?? [])).catch(() => {});
+    Promise.all([
+      userService.list({ limit: 200 }),
+      catalogService.areas(),
+      catalogService.locations(),
+    ]).then(([u, a, l]) => {
+      setAssignUsers(u.data ?? []);
+      setAssignAreas(a.data ?? []);
+      setAssignLocations(l.data ?? []);
+    }).catch(() => {});
   }, []);
 
   const handleEdit = async (data: Partial<Asset>) => {
@@ -105,6 +123,28 @@ export const AssetDetailPage: React.FC = () => {
     }
   };
 
+  const handleAssign = async () => {
+    if (!id) return;
+    setAssignSaving(true);
+    setAssignError('');
+    try {
+      await assetService.changeAssignment(id, {
+        user_id: assignForm.user_id || undefined,
+        area_id: assignForm.area_id || undefined,
+        location_id: assignForm.location_id || undefined,
+        notes: assignForm.notes || undefined,
+      });
+      await Promise.all([loadAsset(), loadHistory()]);
+      setShowAssign(false);
+      setAssignForm({ user_id: '', area_id: '', location_id: '', notes: '' });
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setAssignError(e?.message ?? 'Error al asignar activo');
+    } finally {
+      setAssignSaving(false);
+    }
+  };
+
   if (loading) return <FullPageSpinner />;
   if (!asset) return null;
 
@@ -129,6 +169,9 @@ export const AssetDetailPage: React.FC = () => {
             </Button>
             <Button variant="outline" size="sm" icon={<RefreshCw size={14} />} onClick={loadAsset}>
               Actualizar
+            </Button>
+            <Button variant="secondary" size="sm" icon={<UserPlus size={14} />} onClick={() => { setAssignForm({ user_id: asset.responsible_user_id ?? '', area_id: asset.area_id ?? '', location_id: asset.location_id ?? '', notes: '' }); setShowAssign(true); }}>
+              Reasignar
             </Button>
             <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={() => setShowStatusChange(true)}>
               Cambiar Estado
@@ -298,6 +341,16 @@ export const AssetDetailPage: React.FC = () => {
 
       {tab === 'assignments' && (
         <div className="space-y-3">
+          <div className="flex justify-end">
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<UserPlus size={14} />}
+              onClick={() => { setAssignForm({ user_id: asset.responsible_user_id ?? '', area_id: asset.area_id ?? '', location_id: asset.location_id ?? '', notes: '' }); setShowAssign(true); }}
+            >
+              Reasignar activo
+            </Button>
+          </div>
           {historyLoading ? <FullPageSpinner /> : (
             history?.assignments.length === 0 ? (
               <div className="text-center py-12 text-slate-500 text-sm">Sin historial de asignaciones</div>
@@ -381,6 +434,58 @@ export const AssetDetailPage: React.FC = () => {
             value={statusReason}
             onChange={e => setStatusReason(e.target.value)}
             placeholder="Motivo del cambio de estado…"
+          />
+        </div>
+      </Modal>
+
+      {/* Assignment modal */}
+      <Modal
+        open={showAssign}
+        onClose={() => { setShowAssign(false); setAssignError(''); }}
+        title="Reasignar Activo"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setShowAssign(false); setAssignError(''); }}>Cancelar</Button>
+            <Button variant="primary" loading={assignSaving} onClick={handleAssign}>
+              Confirmar asignación
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {assignError && <Alert type="error" message={assignError} />}
+          <p className="text-xs text-slate-500">
+            Asignar este activo a un responsable, área y/o ubicación. La asignación anterior quedará registrada en el historial.
+          </p>
+          <Select
+            label="Responsable"
+            value={assignForm.user_id}
+            onChange={e => setAssignForm(f => ({ ...f, user_id: e.target.value }))}
+            options={assignUsers.filter(u => u.is_active).map(u => ({ value: u.id, label: u.full_name }))}
+            placeholder="Sin responsable (desvincular)"
+          />
+          <Select
+            label="Área"
+            value={assignForm.area_id}
+            onChange={e => setAssignForm(f => ({ ...f, area_id: e.target.value, location_id: '' }))}
+            options={assignAreas.filter(a => a.is_active).map(a => ({ value: a.id, label: a.name }))}
+            placeholder="Sin área"
+          />
+          <Select
+            label="Ubicación"
+            value={assignForm.location_id}
+            onChange={e => setAssignForm(f => ({ ...f, location_id: e.target.value }))}
+            options={assignLocations
+              .filter(l => l.is_active && (!assignForm.area_id || l.area_id === assignForm.area_id))
+              .map(l => ({ value: l.id, label: l.name }))}
+            placeholder="Sin ubicación"
+          />
+          <Textarea
+            label="Motivo / Notas"
+            value={assignForm.notes}
+            onChange={e => setAssignForm(f => ({ ...f, notes: e.target.value }))}
+            placeholder="Motivo del cambio de asignación…"
           />
         </div>
       </Modal>

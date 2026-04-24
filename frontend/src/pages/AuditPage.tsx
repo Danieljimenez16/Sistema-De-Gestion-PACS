@@ -23,13 +23,24 @@ const ENTITY_FOLDERS: { key: string; label: string; color: string }[] = [
 
 const ACTION_VARIANT: Record<string, 'active' | 'info' | 'warning' | 'retired' | 'stored' | 'default'> = {
   CREATE: 'active',
+  create: 'active',
   UPDATE: 'info',
+  update: 'info',
   DELETE: 'retired',
+  delete: 'retired',
   STATUS_CHANGE: 'warning',
+  status_change: 'warning',
   ASSIGN: 'info',
+  assign: 'info',
+  assignment: 'info',
   RELEASE: 'stored',
+  release: 'stored',
   LOGIN: 'default',
+  login: 'default',
   LOGOUT: 'default',
+  logout: 'default',
+  import: 'active',
+  IMPORT: 'active',
 };
 
 export const AuditPage: React.FC = () => {

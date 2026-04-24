@@ -47,6 +47,27 @@ export const buildQueryString = (params: object): string => {
   return q.toString() ? `?${q.toString()}` : '';
 };
 
+export const downloadCSV = (data: Record<string, unknown>[], filename: string) => {
+  if (!data.length) return;
+  const flattenValue = (v: unknown): string => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'object') return JSON.stringify(v).replace(/"/g, '""');
+    return String(v);
+  };
+  const headers = Object.keys(data[0]);
+  const rows = data.map(row =>
+    headers.map(h => `"${flattenValue(row[h])}"`).join(',')
+  );
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 export const ENTITY_LABELS: Record<string, string> = {
   asset: 'Activo',
   user: 'Usuario',
@@ -73,4 +94,8 @@ export const ACTION_LABELS: Record<string, string> = {
   login: 'Inicio de Sesión',
   LOGOUT: 'Cierre de Sesión',
   logout: 'Cierre de Sesión',
+  import: 'Importación',
+  IMPORT: 'Importación',
+  export: 'Exportación',
+  EXPORT: 'Exportación',
 };

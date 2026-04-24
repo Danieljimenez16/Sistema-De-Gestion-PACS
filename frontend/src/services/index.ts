@@ -125,6 +125,22 @@ export const reportService = {
    */
   licensesExport: () =>
     api.get<ApiResponse<Record<string, unknown>[]>>('/reports/licenses/export'),
+  /**
+   * Returns assets without a responsible user assigned.
+   */
+  unassigned: () =>
+    api.get<ApiResponse<Record<string, unknown>[]>>('/reports/assets/unassigned'),
+  /**
+   * Returns licenses expiring within the given number of days.
+   */
+  licensesExpiring: (days = 30) =>
+    api.get<ApiResponse<Record<string, unknown>[]>>(`/reports/licenses/expiring?days=${days}`),
+  byType: () =>
+    api.get<ApiResponse<{ items: { name: string; value: number }[] }>>('/reports/assets/by-type'),
+  byStatus: () =>
+    api.get<ApiResponse<{ items: { name: string; value: number }[] }>>('/reports/assets/by-status'),
+  byArea: () =>
+    api.get<ApiResponse<{ items: { name: string; value: number }[] }>>('/reports/assets/by-area'),
 };
 
 // ─── Imports ─────────────────────────────────────────────────────────────────

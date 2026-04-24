@@ -122,4 +122,13 @@ const list = async () => {
   return data ?? [];
 };
 
-module.exports = { preview, commit, list };
+/**
+ * Get a specific import record by ID.
+ */
+const getById = async (id) => {
+  const { data, error } = await importRepo.findById(id);
+  if (error || !data) throw new AppError('Importación no encontrada', 404);
+  return data;
+};
+
+module.exports = { preview, commit, list, getById };

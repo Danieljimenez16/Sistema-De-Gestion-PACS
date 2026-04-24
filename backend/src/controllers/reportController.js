@@ -19,10 +19,34 @@ const assetsByArea = async (req, res, next) => {
   } catch (err) { return next(err); }
 };
 
+const assetsByType = async (req, res, next) => {
+  try {
+    return res.status(200).json(ok(await reportService.byType()));
+  } catch (err) { return next(err); }
+};
+
+const assetsByStatus = async (req, res, next) => {
+  try {
+    return res.status(200).json(ok(await reportService.byStatus()));
+  } catch (err) { return next(err); }
+};
+
+const assetsUnassigned = async (req, res, next) => {
+  try {
+    return res.status(200).json(ok(await reportService.unassigned()));
+  } catch (err) { return next(err); }
+};
+
 const licensesExpiringSoon = async (req, res, next) => {
   try {
     const days = parseInt(req.query.days) || 30;
     return res.status(200).json(ok(await reportService.licensesExpiringSoon(days)));
+  } catch (err) { return next(err); }
+};
+
+const licensesAssigned = async (req, res, next) => {
+  try {
+    return res.status(200).json(ok(await reportService.licensesAssigned()));
   } catch (err) { return next(err); }
 };
 
@@ -41,4 +65,9 @@ const licensesExport = async (req, res, next) => {
 // Keep alias for backward compatibility
 const inventoryExport = assetsExport;
 
-module.exports = { dashboard, assetsSummary, assetsByArea, licensesExpiringSoon, assetsExport, licensesExport, inventoryExport };
+module.exports = {
+  dashboard, assetsSummary, assetsByArea, assetsByType, assetsByStatus, assetsUnassigned,
+  licensesExpiringSoon, licensesAssigned,
+  assetsExport, licensesExport, inventoryExport,
+};
+

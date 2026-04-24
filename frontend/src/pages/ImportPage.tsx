@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, CheckCircle, AlertTriangle, FileSpreadsheet, X } from 'lucide-react';
+import { Upload, CheckCircle, AlertTriangle, FileSpreadsheet, X, Download } from 'lucide-react';
 import {
   PageHeader, Card, Button, Alert,
 } from '../components/ui';
@@ -8,6 +8,29 @@ import type { ImportPreview, ImportPreviewRow } from '../types';
 import { cls } from '../utils/helpers';
 
 type ImportStep = 'upload' | 'preview' | 'done';
+
+const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1';
+
+/**
+ * Trigger download of the CSV template from the backend.
+ */
+const downloadTemplate = () => {
+  const token = localStorage.getItem('token');
+  const url = `${BASE_URL}/imports/assets/template`;
+  const a = document.createElement('a');
+  a.href = url + (token ? `?_t=${encodeURIComponent(token)}` : '');
+  a.download = 'plantilla_importacion_activos.csv';
+  // Use fetch to pass Authorization header
+  fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    .then(res => res.blob())
+    .then(blob => {
+      const blobUrl = URL.createObjectURL(blob);
+      a.href = blobUrl;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    })
+    .catch(() => { a.href = url; a.click(); });
+};
 
 /**
  * Parse a CSV text string into an array of plain objects.
@@ -218,16 +241,47 @@ export const ImportPage: React.FC = () => {
 
           {/* Template info */}
           <div className="mt-6 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
-            <p className="text-xs font-semibold text-slate-400 mb-2">Columnas recomendadas en el CSV (primera fila = encabezados):</p>
-            <div className="flex flex-wrap gap-2">
-              {['code', 'name', 'serial', 'model', 'purchase_date', 'warranty_expiry', 'notes'].map(col => (
-                <code key={col} className="text-xs bg-slate-800 text-blue-400 px-2 py-0.5 rounded">{col}</code>
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-300 mb-1">¿Cómo preparar el archivo?</p>
+                <p className="text-xs text-slate-500">La primera fila debe tener los encabezados exactos. Descarga la plantilla para comenzar.</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Download size={13} />}
+                onClick={downloadTemplate}
+              >
+                Descargar plantilla
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-3">
+              {[
+                { col: 'code', req: true, desc: 'Código único del activo (ej: ELEM-001)' },
+                { col: 'name', req: true, desc: 'Nombre descriptivo del activo' },
+                { col: 'serial', req: false, desc: 'Número de serie (opcional)' },
+                { col: 'model', req: false, desc: 'Modelo del equipo' },
+                { col: 'asset_type_name', req: false, desc: 'Nombre del tipo (ej: Laptop)' },
+                { col: 'brand_name', req: false, desc: 'Nombre de la marca (ej: HP)' },
+                { col: 'status_name', req: false, desc: 'Estado (ej: Activo)' },
+                { col: 'area_name', req: false, desc: 'Nombre del área' },
+                { col: 'location_name', req: false, desc: 'Nombre de la ubicación' },
+                { col: 'responsible_email', req: false, desc: 'Email del responsable' },
+                { col: 'purchase_date', req: false, desc: 'Fecha compra (YYYY-MM-DD)' },
+                { col: 'warranty_expiry', req: false, desc: 'Fin garantía (YYYY-MM-DD)' },
+                { col: 'description', req: false, desc: 'Descripción adicional' },
+                { col: 'notes', req: false, desc: 'Notas u observaciones' },
+              ].map(({ col, req, desc }) => (
+                <div key={col} className="flex items-start gap-2 py-0.5">
+                  <code className={cls(
+                    'text-xs px-1.5 py-0.5 rounded shrink-0',
+                    req ? 'bg-blue-950 text-blue-300 border border-blue-800' : 'bg-slate-800 text-slate-400'
+                  )}>{col}</code>
+                  <span className="text-xs text-slate-500">{desc}{req && <span className="text-red-400 ml-1">*</span>}</span>
+                </div>
               ))}
             </div>
-            <p className="text-xs text-slate-500 mt-2">
-              <strong className="text-slate-400">code</strong> y <strong className="text-slate-400">name</strong> son obligatorios.
-              Para XLSX, expórtalo como CSV (UTF-8) desde Excel o Google Sheets.
-            </p>
+            <p className="text-xs text-slate-600 mt-3">Los campos con <span className="text-red-400">*</span> son obligatorios. Para XLSX, expórtalo como CSV (UTF-8) desde Excel.</p>
           </div>
         </Card>
       )}

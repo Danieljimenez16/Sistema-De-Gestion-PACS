@@ -19,12 +19,28 @@ export const AssetForm: React.FC<AssetFormProps> = ({
 }) => {
   const isCreate = !initial.id;
 
-  const [form, setForm] = useState<Partial<Asset>>({
-    code: '', name: '', serial: '', model: '',
-    description: '', notes: '', purchase_date: '', warranty_expiry: '',
-    asset_type_id: '', brand_id: '', status_id: '',
-    location_id: '', area_id: '', responsible_user_id: '',
-    ...initial,
+  const [form, setForm] = useState<Partial<Asset>>(() => {
+    // Base defaults
+    const defaults: Partial<Asset> = {
+      code: '', name: '', serial: '', model: '',
+      description: '', notes: '', purchase_date: '', warranty_expiry: '',
+      asset_type_id: '', brand_id: '', status_id: '',
+      location_id: '', area_id: '', responsible_user_id: '',
+    };
+    // Merge initial values, falling back to joined-object IDs when raw FK is missing
+    return {
+      ...defaults,
+      ...initial,
+      asset_type_id: initial.asset_type_id ?? initial.asset_type?.id ?? '',
+      brand_id: initial.brand_id ?? initial.brand?.id ?? '',
+      status_id: initial.status_id ?? initial.status?.id ?? '',
+      location_id: initial.location_id ?? initial.location?.id ?? '',
+      area_id: initial.area_id ?? initial.area?.id ?? '',
+      responsible_user_id: initial.responsible_user_id ?? initial.responsible_user?.id ?? '',
+      // Normalize date strings to YYYY-MM-DD for <input type="date">
+      purchase_date: (initial.purchase_date ?? '').slice(0, 10),
+      warranty_expiry: (initial.warranty_expiry ?? '').slice(0, 10),
+    };
   });
 
   const [catalogs, setCatalogs] = useState<{

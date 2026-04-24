@@ -320,4 +320,58 @@ const licensesExport = async () => {
   return data;
 };
 
-module.exports = { dashboard, assetsSummary, assetsByArea, licensesExpiringSoon, inventoryExport, licensesExport };
+const byType = async () => {
+  const { data, error } = await supabase
+    .from('assets')
+    .select('asset_types(name)')
+    .eq('is_deleted', false);
+
+  if (error) throw new AppError('Error al generar reporte por tipo', 500);
+
+  const map = new Map();
+  data.forEach(({ asset_types }) => increment(map, asset_types?.name ?? 'Sin tipo'));
+  return { items: toSeries(map) };
+};
+
+const byStatus = async () => {
+  const { data, error } = await supabase
+    .from('assets')
+    .select('asset_statuses(name)')
+    .eq('is_deleted', false);
+
+  if (error) throw new AppError('Error al generar reporte por estado', 500);
+
+  const map = new Map();
+  data.forEach(({ asset_statuses }) => increment(map, asset_statuses?.name ?? 'Sin estado'));
+  return { items: toSeries(map) };
+};
+
+const unassigned = async () => {
+  const { data, error } = await supabase
+    .from('assets')
+    .select('id, code, name, model, asset_types(name), asset_statuses(name), areas(name)')
+    .eq('is_deleted', false)
+    .is('responsible_user_id', null)
+    .order('code');
+
+  if (error) throw new AppError('Error al obtener activos sin asignar', 500);
+  return data ?? [];
+};
+
+const licensesAssigned = async () => {
+  const { data, error } = await supabase
+    .from('license_assignments')
+    .select(`
+      id, assigned_at, notes,
+      license:licenses(id, name, vendor, expiry_date),
+      asset:assets!license_assignments_asset_id_fkey(id, code, name),
+      user:users!license_assignments_user_id_fkey(id, full_name, email)
+    `)
+    .eq('is_active', true)
+    .order('assigned_at', { ascending: false });
+
+  if (error) throw new AppError('Error al obtener asignaciones de licencias', 500);
+  return data ?? [];
+};
+
+module.exports = { dashboard, assetsSummary, assetsByArea, byType, byStatus, unassigned, licensesExpiringSoon, inventoryExport, licensesExport, licensesAssigned };

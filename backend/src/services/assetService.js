@@ -69,17 +69,25 @@ const cleanBody = Object.fromEntries(
 const { data, error } = await assetRepo.update(id, cleanBody);
 if (error) throw new AppError('Error al actualizar activo: ' + error.message, 500);
 
-if (cleanBody.responsible_user_id && cleanBody.responsible_user_id !== old.responsible_user?.id) {
+// If status changed via update, record in status history
+if (cleanBody.status_id && cleanBody.status_id !== old.status_id) {
+  await assetRepo.insertStatusHistory({
+    asset_id: id,
+    previous_status_id: old.status_id || null,
+    new_status_id: cleanBody.status_id,
+    changed_by: actorId,
+    reason: 'Cambio desde edición de activo',
+  });
+}
+
+if (cleanBody.responsible_user_id && cleanBody.responsible_user_id !== old.responsible_user_id) {
   const { data: active } = await assignmentRepo.findActiveByAsset(id);
   if (active) await assignmentRepo.release(active.id);
   await assignmentRepo.create({
     asset_id: id,
     user_id: cleanBody.responsible_user_id,
-    area_id: cleanBody.area_id || old.area?.id || null,
-    location_id: cleanBody.location_id || old.location?.id || null,
-    notes: null,
-    created_by: actorId,
-  });
+    area_id: cleanBody.area_id || old.area_id || null,
+    location_id: cleanBody.location_id || old.location_id || null,
 }
 
   await auditRepo.log({
