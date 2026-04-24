@@ -45,6 +45,12 @@ const getStatusHistory = async (req, res, next) => {
   } catch (err) { return next(err); }
 };
 
+const getHistory = async (req, res, next) => {
+  try {
+    return res.status(200).json(ok(await assetService.getHistory(req.params.id)));
+  } catch (err) { return next(err); }
+};
+
 const nextCode = async (req, res, next) => {
   try {
     return res.status(200).json(ok(await assetService.nextCode()));
@@ -55,12 +61,6 @@ const remove = async (req, res, next) => {
   try {
     await assetService.remove(req.params.id, req.user.sub, req.ip);
     return res.status(204).send();
-  } catch (err) { return next(err); }
-};
-
-const getHistory = async (req, res, next) => {
-  try {
-    return res.status(200).json(ok(await assetService.getHistory(req.params.id)));
   } catch (err) { return next(err); }
 };
 

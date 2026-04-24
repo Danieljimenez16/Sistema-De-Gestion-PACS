@@ -4,10 +4,47 @@ import {
   PageHeader, Card, Button, Alert,
 } from '../components/ui';
 import { importService } from '../services';
-import type { ImportPreview } from '../types';
+import type { ImportPreview, ImportPreviewRow } from '../types';
 import { cls } from '../utils/helpers';
 
 type ImportStep = 'upload' | 'preview' | 'done';
+
+/**
+ * Parse a CSV text string into an array of plain objects.
+ * Handles quoted fields and trims whitespace.
+ */
+const parseCSV = (text: string): Record<string, unknown>[] => {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+
+  const splitCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+        else { inQuotes = !inQuotes; }
+      } else if (ch === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const headers = splitCSVLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const values = splitCSVLine(line);
+    const obj: Record<string, unknown> = {};
+    headers.forEach((h, i) => { obj[h] = values[i] ?? ''; });
+    return obj;
+  });
+};
 
 export const ImportPage: React.FC = () => {
   const [step, setStep] = useState<ImportStep>('upload');
@@ -23,8 +60,8 @@ export const ImportPage: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (f: File) => {
-    if (!f.name.endsWith('.csv') && !f.name.endsWith('.xlsx')) {
-      setError('Solo se aceptan archivos CSV o XLSX');
+    if (!f.name.endsWith('.csv')) {
+      setError('Solo se aceptan archivos CSV. Para XLSX, expórtalo como CSV primero.');
       return;
     }
     setFile(f);
@@ -43,9 +80,17 @@ export const ImportPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await importService.preview(fd);
+      const text = await file.text();
+      const rows = parseCSV(text);
+      if (rows.length === 0) {
+        setError('El archivo no contiene filas de datos. Verifica el formato CSV.');
+        return;
+      }
+      if (rows.length > 5000) {
+        setError('El archivo supera el límite de 5000 filas.');
+        return;
+      }
+      const res = await importService.preview(rows);
       setPreviewData(res.data);
       setStep('preview');
     } catch (err: unknown) {
@@ -57,11 +102,12 @@ export const ImportPage: React.FC = () => {
   };
 
   const handleCommit = async () => {
-    if (!previewData?.import_id) return;
+    if (!previewData?.import_id || !previewData.rows.length) return;
     setCommitting(true);
     setError('');
     try {
-      const res = await importService.commit(previewData.import_id);
+      // Send the valid rows back to backend for insertion
+      const res = await importService.commit(previewData.import_id, previewData.rows as Record<string, unknown>[]);
       setImportResult({
         processed: res.data.processed_rows,
         errors: res.data.error_rows,
@@ -91,7 +137,7 @@ export const ImportPage: React.FC = () => {
     <div className="space-y-5 max-w-4xl">
       <PageHeader
         title="Importar Activos"
-        subtitle="Carga masiva de activos desde archivo CSV o XLSX"
+        subtitle="Carga masiva de activos desde archivo CSV"
       />
 
       {/* Steps indicator */}
@@ -137,7 +183,7 @@ export const ImportPage: React.FC = () => {
             <input
               ref={inputRef}
               type="file"
-              accept=".csv,.xlsx"
+              accept=".csv"
               className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
             />
@@ -145,8 +191,8 @@ export const ImportPage: React.FC = () => {
               <FileSpreadsheet size={28} className="text-blue-400" />
             </div>
             <div className="text-center">
-              <p className="text-slate-200 font-medium">Arrastra tu archivo aquí</p>
-              <p className="text-slate-500 text-sm mt-1">o haz clic para seleccionar · CSV / XLSX · máx. 5000 filas</p>
+              <p className="text-slate-200 font-medium">Arrastra tu archivo CSV aquí</p>
+              <p className="text-slate-500 text-sm mt-1">o haz clic para seleccionar · solo CSV · máx. 5000 filas</p>
             </div>
           </div>
 
@@ -172,12 +218,16 @@ export const ImportPage: React.FC = () => {
 
           {/* Template info */}
           <div className="mt-6 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
-            <p className="text-xs font-semibold text-slate-400 mb-2">Columnas requeridas en el archivo:</p>
+            <p className="text-xs font-semibold text-slate-400 mb-2">Columnas recomendadas en el CSV (primera fila = encabezados):</p>
             <div className="flex flex-wrap gap-2">
-              {['code', 'name', 'serial', 'asset_type', 'brand', 'model', 'status', 'area', 'location', 'purchase_date'].map(col => (
+              {['code', 'name', 'serial', 'model', 'purchase_date', 'warranty_expiry', 'notes'].map(col => (
                 <code key={col} className="text-xs bg-slate-800 text-blue-400 px-2 py-0.5 rounded">{col}</code>
               ))}
             </div>
+            <p className="text-xs text-slate-500 mt-2">
+              <strong className="text-slate-400">code</strong> y <strong className="text-slate-400">name</strong> son obligatorios.
+              Para XLSX, expórtalo como CSV (UTF-8) desde Excel o Google Sheets.
+            </p>
           </div>
         </Card>
       )}
@@ -198,36 +248,40 @@ export const ImportPage: React.FC = () => {
             )}
           </div>
 
-          {/* Preview table */}
-          <div className="overflow-x-auto rounded-xl border border-slate-700">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-slate-900 border-b border-slate-700">
-                  <th className="text-left px-3 py-2.5 text-slate-500 font-semibold">#</th>
-                  {previewCols.slice(0, 8).map(col => (
-                    <th key={col} className="text-left px-3 py-2.5 text-slate-400 font-semibold uppercase tracking-wider">{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700/50">
-                {previewData.rows.slice(0, 20).map((row, i) => (
-                  <tr key={i} className="bg-slate-800">
-                    <td className="px-3 py-2 text-slate-500">{i + 1}</td>
+          {previewData.rows.length === 0 ? (
+            <Alert type="error" message="No hay filas válidas para importar. Revisa los errores y corrige el archivo." />
+          ) : (
+            /* Preview table */
+            <div className="overflow-x-auto rounded-xl border border-slate-700">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-slate-900 border-b border-slate-700">
+                    <th className="text-left px-3 py-2.5 text-slate-500 font-semibold">#</th>
                     {previewCols.slice(0, 8).map(col => (
-                      <td key={col} className="px-3 py-2 text-slate-300">{String(row[col] ?? '—')}</td>
+                      <th key={col} className="text-left px-3 py-2.5 text-slate-400 font-semibold uppercase tracking-wider">{col}</th>
                     ))}
                   </tr>
-                ))}
-                {previewData.rows.length > 20 && (
-                  <tr>
-                    <td colSpan={previewCols.length + 1} className="text-center py-3 text-slate-500 text-xs">
-                      … y {previewData.rows.length - 20} filas más
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-700/50">
+                  {previewData.rows.slice(0, 20).map((row: ImportPreviewRow, i: number) => (
+                    <tr key={i} className="bg-slate-800">
+                      <td className="px-3 py-2 text-slate-500">{i + 1}</td>
+                      {previewCols.slice(0, 8).map(col => (
+                        <td key={col} className="px-3 py-2 text-slate-300">{String(row[col] ?? '—')}</td>
+                      ))}
+                    </tr>
+                  ))}
+                  {previewData.rows.length > 20 && (
+                    <tr>
+                      <td colSpan={previewCols.length + 1} className="text-center py-3 text-slate-500 text-xs">
+                        … y {previewData.rows.length - 20} filas más
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Errors */}
           {previewData.errors.length > 0 && (
@@ -236,10 +290,10 @@ export const ImportPage: React.FC = () => {
                 <AlertTriangle size={14} /> Filas con errores (no se importarán)
               </h4>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {previewData.errors.map((e, i) => (
+                {previewData.errors.map((e: ImportPreviewRow, i: number) => (
                   <div key={i} className="flex items-center gap-3 text-xs p-2 bg-red-950/30 border border-red-900 rounded-lg">
                     <span className="text-red-500">Fila {(e._row as number) ?? i + 1}:</span>
-                    <span className="text-red-400">{e._error as string ?? 'Error desconocido'}</span>
+                    <span className="text-red-400">{(e._error as string) ?? 'Error desconocido'}</span>
                   </div>
                 ))}
               </div>
@@ -248,7 +302,13 @@ export const ImportPage: React.FC = () => {
 
           <div className="flex items-center justify-between pt-2">
             <Button variant="ghost" onClick={reset}>← Subir otro archivo</Button>
-            <Button variant="primary" loading={committing} icon={<Upload size={14} />} onClick={handleCommit}>
+            <Button
+              variant="primary"
+              loading={committing}
+              disabled={previewData.rows.length === 0}
+              icon={<Upload size={14} />}
+              onClick={handleCommit}
+            >
               Importar {previewData.rows.length} activos
             </Button>
           </div>

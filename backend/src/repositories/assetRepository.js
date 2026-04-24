@@ -60,7 +60,7 @@ const softDelete = (id) =>
 const getStatusHistory = (assetId) =>
   supabase
     .from('status_history')
-    .select('*, previous:asset_statuses!status_history_previous_status_id_fkey(id,name), new_status:asset_statuses!status_history_new_status_id_fkey(id,name), changer:users!status_history_changed_by_fkey(id,full_name)')
+    .select('id, asset_id, previous_status_id, new_status_id, reason, changed_at, changed_by, previous_status:asset_statuses!status_history_previous_status_id_fkey(id,name), new_status:asset_statuses!status_history_new_status_id_fkey(id,name), changed_by_user:users!status_history_changed_by_fkey(id,full_name)')
     .eq('asset_id', assetId)
     .order('changed_at', { ascending: false });
 

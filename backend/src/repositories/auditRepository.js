@@ -1,9 +1,9 @@
 const supabase = require('../config/supabase');
 
 const BASE_SELECT = `
-  id, entity_type, entity_id, action,
+  id, entity_type, entity_id, action, performed_by,
   old_values, new_values, ip_address, notes, performed_at,
-  performer:users!audit_events_performed_by_fkey(id, full_name, email)
+  performed_by_user:users!audit_events_performed_by_fkey(id, full_name, email)
 `.trim();
 
 const log = (data) =>

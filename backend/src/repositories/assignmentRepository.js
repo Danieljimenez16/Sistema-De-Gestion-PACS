@@ -2,11 +2,11 @@ const supabase = require('../config/supabase');
 
 const BASE_SELECT = `
   id, assigned_at, released_at, is_active, notes, created_at,
-  assets(id, code, name),
-  users(id, full_name, email),
-  areas(id, name),
-  locations(id, name),
-  creator:users!assignments_created_by_fkey(id, full_name)
+  asset:assets!assignments_asset_id_fkey(id, code, name),
+  user:users!assignments_user_id_fkey(id, full_name, email),
+  area:areas!assignments_area_id_fkey(id, name),
+  location:locations!assignments_location_id_fkey(id, name),
+  created_by_user:users!assignments_created_by_fkey(id, full_name)
 `.trim();
 
 const findActiveByAsset = (assetId) =>

@@ -4,6 +4,7 @@ import { Lock, Eye, EyeOff, Check } from 'lucide-react';
 import { FadeIn } from '../components/animations';
 import { authService } from '../services';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast';
 
 interface Props {
   forced?: boolean; // true = first-login forced change (no current-password field)

@@ -26,10 +26,19 @@ const licensesExpiringSoon = async (req, res, next) => {
   } catch (err) { return next(err); }
 };
 
-const inventoryExport = async (req, res, next) => {
+const assetsExport = async (req, res, next) => {
   try {
     return res.status(200).json(ok(await reportService.inventoryExport()));
   } catch (err) { return next(err); }
 };
 
-module.exports = { dashboard, assetsSummary, assetsByArea, licensesExpiringSoon, inventoryExport };
+const licensesExport = async (req, res, next) => {
+  try {
+    return res.status(200).json(ok(await reportService.licensesExport()));
+  } catch (err) { return next(err); }
+};
+
+// Keep alias for backward compatibility
+const inventoryExport = assetsExport;
+
+module.exports = { dashboard, assetsSummary, assetsByArea, licensesExpiringSoon, assetsExport, licensesExport, inventoryExport };

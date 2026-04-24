@@ -183,7 +183,14 @@ export const UsersPage: React.FC = () => {
   };
 
   const chromaItems: ChromaItem[] = filteredUsers.map(u => {
+    const roleKey = (u.role?.name ?? '').toLowerCase();
     const roleClasses = getRoleClasses(u.role?.name);
+    const gradient = roleKey === 'admin'
+      ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)'
+      : roleKey === 'editor'
+        ? 'linear-gradient(135deg, #d97706 0%, #92400e 100%)'
+        : 'linear-gradient(135deg, #0d9488 0%, #115e59 100%)';
+    const borderColor = roleKey === 'admin' ? '#dc2626' : roleKey === 'editor' ? '#d97706' : '#0d9488';
     return {
       id: u.id,
       title: u.full_name,
@@ -191,6 +198,8 @@ export const UsersPage: React.FC = () => {
       handle: u.is_active ? 'Activo' : 'Inactivo',
       badge: u.role?.name ?? 'Sin rol',
       className: roleClasses.badge,
+      gradient,
+      borderColor,
       icon: roleClasses.icon,
       onClick: () => openEdit(u),
     };

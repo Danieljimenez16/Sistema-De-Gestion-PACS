@@ -1,0 +1,1026 @@
+SIGAT-ES - Fuente de verdad funcional y técnica para Backend
+Documento de alineación Frontend -> Backend
+Versión inicial basada en el preliminar del proyecto
+
+Objetivo de este documento
+Este documento consolida, interpreta y aterriza técnicamente el preliminar del proyecto SIGAT-ES para que el backend pueda diseñar y exponer una API consistente, escalable y utilizable por frontend sin retrabajo innecesario. Su propósito es convertir el texto del preliminar en una fuente de verdad funcional y técnica para definir módulos, entidades, campos, endpoints, reglas de negocio, validaciones, filtros, contratos de respuesta y consideraciones de arquitectura.
+
+Alcance de esta fuente de verdad
+Este documento sí define:
+- Qué problema resuelve el sistema.
+- Qué módulos mínimos debe exponer el backend.
+- Qué entidades principales existen.
+- Qué campos deberían manejarse por módulo.
+- Qué endpoints necesita frontend para operar sin ambigüedad.
+- Qué validaciones y restricciones deben considerarse desde backend.
+- Qué relaciones de datos deben modelarse para evitar romper la base de datos.
+- Qué contratos generales de respuesta conviene estandarizar.
+- Qué decisiones conviene tomar para facilitar QA, auditoría, reportes y escalabilidad.
+
+Este documento no define todavía:
+- Integraciones externas complejas.
+- Automatización avanzada de inventario por red.
+- Módulos financieros complejos.
+- Diseño visual del frontend.
+
+1. Comprensión profunda del problema del negocio
+Element System necesita dejar atrás el control manual y disperso de activos tecnológicos, que hoy vive en hojas de cálculo y registros por área. El preliminar menciona explícitamente problemas de trazabilidad, duplicidad de información, errores de actualización y dificultad para conocer el estado real de los recursos. También menciona que actualmente se controlan routers, antenas, servidores, dispositivos, laptops y licencias. Por lo tanto, el sistema no debe pensarse como un simple CRUD de inventario, sino como una plataforma de control operativo de activos tecnológicos con trazabilidad, responsables, ubicaciones, estados, licencias, reportes y auditoría.
+
+La pregunta de negocio que el sistema debe responder rápido es:
+- Qué activos tenemos.
+- Dónde están.
+- En qué estado están.
+- Quién los tiene o quién es responsable.
+- Qué licencias están asociadas.
+- Qué cambios se hicieron y cuándo.
+
+Eso convierte al backend en el eje de consistencia del sistema. No puede limitarse a guardar registros planos. Debe modelar relaciones y reglas de integridad que permitan evitar duplicados, inconsistencias y pérdida de trazabilidad.
+
+2. Objetivo real del sistema a nivel backend
+El backend debe permitir como mínimo:
+- Registrar activos tecnológicos.
+- Consultarlos con filtros.
+- Editarlos sin perder historial.
+- Cambiar su estado.
+- Asignarlos a responsable, área y ubicación.
+- Gestionar licencias asociadas a activos o usuarios.
+- Registrar auditoría de cambios relevantes.
+- Proveer reportes básicos.
+- Soportar roles y autenticación.
+- Soportar migración inicial desde inventario base.
+
+3. Principios técnicos que backend debe asumir desde el inicio
+3.1 Arquitectura
+El preliminar menciona MVC como estándar de arquitectura. En Node.js esto se puede aterrizar así:
+- routes/: definición de endpoints y mapping HTTP.
+- controllers/: validación de request y coordinación.
+- services/: lógica de negocio real, para no ensuciar controllers.
+- repositories o models/: acceso a base de datos.
+- middlewares/: auth, roles, manejo de errores, validaciones.
+- validators/: reglas reutilizables de payload y query params.
+
+Aunque el preliminar menciona MVC, la mejor práctica en Node es no dejar toda la lógica en controller. Se recomienda una variante de MVC limpia con capa de servicio.
+
+3.2 Base de datos
+Debe ser relacional, porque el preliminar lo indica y porque el dominio requiere integridad entre activos, tipos, ubicaciones, responsables, estados, licencias, asignaciones y auditoría. Lo más sano es modelar tablas normalizadas y solo desnormalizar donde ayude a reportes.
+
+3.3 Trazabilidad
+No se debe sobrescribir información crítica sin dejar historial. Cambios de estado, reasignaciones, modificaciones sensibles y relaciones con licencias deben dejar registro.
+
+3.4 Clean code y mantenibilidad
+- Nombres consistentes y semánticos.
+- Controladores delgados.
+- Validación fuerte en backend.
+- Respuestas API uniformes.
+- Soft delete donde aplique.
+- Catálogos controlados para estados, tipos y roles.
+- Paginación y filtros desde el primer día.
+
+4. Módulos funcionales que sí se desprenden del preliminar
+A partir del preliminar, los módulos mínimos del MVP son:
+
+4.1 Autenticación y autorización
+Porque el documento exige acceso por roles y autenticación.
+
+4.2 Inventario de activos
+Porque el núcleo del sistema es registro, consulta, actualización y clasificación de activos.
+
+4.3 Asignación y estados
+Porque el documento menciona responsable, área, ubicación, historial de asignaciones y bitácora de cambios de estado.
+
+4.4 Licencias
+Porque se requiere control de licencias, vigencia, asignación y alertas simples.
+
+4.5 Auditoría
+Porque el documento exige historial de cambios y consultas por usuario/fecha/acción.
+
+4.6 Reportes
+Porque se solicitan reportes esenciales y exportación.
+
+4.7 Migración inicial
+Porque se menciona importación inicial desde hojas de cálculo y limpieza/normalización del inventario.
+
+4.8 Catálogos base
+No aparece como módulo de cara al usuario, pero backend lo necesita para no hardcodear opciones y evitar basura de datos. Aquí entran tipos de activo, estados, áreas, ubicaciones, marcas, modelos opcionales, roles y tipos de licencia.
+
+5. Modelo conceptual recomendado
+Entidades principales que backend debería contemplar para que la BD no explote y el frontend pueda trabajar bien.
+
+5.1 Usuario
+Representa acceso al sistema.
+Campos sugeridos:
+- id
+- nombre
+- apellido
+- email
+- password_hash o provider_id si se usa auth externa
+- rol_id
+- area_id opcional
+- is_active
+- created_at
+- updated_at
+- last_login_at opcional
+
+5.2 Rol
+Campos sugeridos:
+- id
+- nombre
+- descripcion
+- is_active
+
+Valores iniciales sugeridos:
+- admin
+- tecnico
+- consulta
+
+5.3 Area
+Representa departamento o unidad responsable.
+Campos sugeridos:
+- id
+- nombre
+- codigo opcional
+- descripcion opcional
+- is_active
+
+5.4 Ubicacion
+Representa sede, edificio, piso, cuarto o ubicación lógica/física.
+Campos sugeridos:
+- id
+- nombre
+- codigo opcional
+- descripcion opcional
+- parent_location_id opcional si se quiere jerarquía
+- is_active
+
+5.5 TipoActivo
+Catálogo para clasificar activos.
+Campos sugeridos:
+- id
+- nombre
+- descripcion
+- is_active
+
+Valores de ejemplo:
+- router
+- antena
+- servidor
+- laptop
+- desktop
+- switch
+- ups
+- licencia-virtual si deciden modelarla también como activo no físico
+- otro
+
+5.6 EstadoActivo
+Catálogo de estados.
+Campos sugeridos:
+- id
+- nombre
+- descripcion
+- is_active
+
+Valores recomendados:
+- activo
+- en_mantenimiento
+- dado_de_baja
+- en_bodega
+- asignado
+- extraviado
+- reservado
+
+Nota: "asignado" puede tratarse como condición derivada, pero para simplificar el MVP puede existir como estado si el negocio lo ocupa. Si quieren un modelo más limpio, el activo tiene estado operativo y además una asignación vigente. Eso sería más correcto.
+
+5.7 Marca
+Catálogo opcional pero recomendable.
+Campos sugeridos:
+- id
+- nombre
+- is_active
+
+5.8 Activo
+Entidad principal.
+Campos sugeridos mínimos:
+- id
+- codigo_interno
+- serial_number
+- tipo_activo_id
+- marca_id opcional
+- modelo
+- descripcion
+- estado_activo_id
+- area_actual_id opcional
+- ubicacion_actual_id opcional
+- responsable_actual_user_id opcional
+- fecha_adquisicion opcional
+- fecha_garantia_fin opcional
+- observaciones opcional
+- is_active
+- created_at
+- updated_at
+- created_by
+- updated_by
+
+Campos importantes para frontend:
+- nombre_mostrado opcional derivado
+- etiquetas opcional futuro
+- tiene_licencias boolean derivado opcional
+
+Reglas importantes:
+- serial_number debe ser único cuando exista.
+- codigo_interno debe ser único.
+- tipo_activo_id y estado_activo_id son obligatorios.
+- responsable_actual_user_id, area_actual_id y ubicacion_actual_id pueden ser nulos si aún no está asignado.
+- is_active no equivale a estado operativo. is_active indica si el registro sigue vigente en el sistema.
+
+5.9 HistorialAsignacion
+No guardar solo la asignación actual en Activo. También guardar historial.
+Campos sugeridos:
+- id
+- activo_id
+- responsable_user_id opcional
+- area_id opcional
+- ubicacion_id opcional
+- fecha_inicio
+- fecha_fin opcional
+- motivo opcional
+- is_current
+- created_at
+- created_by
+
+5.10 HistorialEstadoActivo
+Para bitácora de cambios de estado.
+Campos sugeridos:
+- id
+- activo_id
+- estado_anterior_id opcional
+- estado_nuevo_id
+- comentario opcional
+- changed_at
+- changed_by
+
+5.11 TipoLicencia
+Catálogo opcional pero muy útil.
+Campos sugeridos:
+- id
+- nombre
+- descripcion
+- is_active
+
+Ejemplos:
+- office
+- windows
+- antivirus
+- software_tecnico
+- licencia_red
+- otro
+
+5.12 Licencia
+Campos sugeridos:
+- id
+- codigo_interno opcional
+- nombre
+- tipo_licencia_id
+- proveedor opcional
+- clave_licencia opcional según política de seguridad
+- fecha_inicio_vigencia
+- fecha_fin_vigencia
+- cantidad_total opcional
+- cantidad_disponible opcional
+- estado opcional
+- observaciones opcional
+- is_active
+- created_at
+- updated_at
+
+Nota de seguridad:
+Si van a almacenar claves de licencia sensibles, definir desde ya si se enmascaran en respuestas API o si solo ciertos roles las pueden ver.
+
+5.13 AsignacionLicencia
+Porque una licencia puede estar asociada a activo o usuario.
+Campos sugeridos:
+- id
+- licencia_id
+- activo_id opcional
+- user_id opcional
+- fecha_asignacion
+- fecha_desasignacion opcional
+- observaciones opcional
+- is_current
+- created_at
+- created_by
+
+Regla:
+- Debe asociarse a activo o usuario, pero no quedar totalmente huérfana.
+
+5.14 AuditoriaEvento
+Módulo transversal.
+Campos sugeridos:
+- id
+- modulo
+- entidad
+- entidad_id
+- accion
+- descripcion
+- payload_before opcional
+- payload_after opcional
+- performed_by
+- performed_at
+- ip_address opcional
+
+Valores de accion sugeridos:
+- create
+- update
+- delete
+- change_status
+- assign
+- unassign
+- login
+- export
+- import
+
+5.15 ImportacionInventario
+Para migración inicial y trazabilidad de carga.
+Campos sugeridos:
+- id
+- nombre_archivo
+- total_registros
+- total_exitosos
+- total_fallidos
+- estado
+- resumen_errores opcional
+- imported_by
+- imported_at
+
+5.16 ImportacionInventarioDetalle
+Campos sugeridos:
+- id
+- importacion_id
+- fila_origen
+- payload_original
+- estado
+- error_detalle opcional
+- activo_creado_id opcional
+
+6. Relación entre módulos y por qué frontend los necesita
+
+6.1 Autenticación y roles
+Frontend necesita saber quién entró y qué puede ver o hacer. Sin esto no puede ocultar/mostrar acciones ni proteger secciones.
+
+6.2 Inventario de activos
+Es el corazón del sistema. Frontend necesita:
+- listado paginado
+- detalle
+- crear
+- editar
+- cambiar estado
+- buscar y filtrar
+
+6.3 Asignaciones
+Frontend necesita poder ver a quién está asignado un activo, reasignarlo y consultar historial. No basta con guardar una columna estática.
+
+6.4 Licencias
+Frontend necesita crear licencias, ver vencimientos, asociarlas a activo/usuario y listar asignaciones para paneles y detalle.
+
+6.5 Auditoría
+Frontend necesita consultas por usuario, fecha y acción para pantallas de trazabilidad o soporte.
+
+6.6 Reportes
+Frontend necesita endpoints listos para dashboard, tablas y exportación sin ponerse a recomputar lógica pesada en cliente.
+
+6.7 Catálogos
+Frontend necesita combos consistentes para tipo, estado, área, ubicación, rol y tipo de licencia. Eso no debe estar hardcodeado en React.
+
+7. Endpoints recomendados por módulo
+Se recomienda prefijo base:
+/api/v1
+
+Formato general:
+- GET para consulta
+- POST para creación
+- PUT para actualización completa si aplica
+- PATCH para cambios parciales o acciones específicas
+- DELETE preferiblemente soft delete donde aplique
+
+7.1 Auth y sesión
+Objetivo: login, sesión actual y autorización.
+
+POST /api/v1/auth/login
+Request:
+{
+  "email": "string",
+  "password": "string"
+}
+Response:
+{
+  "success": true,
+  "data": {
+    "token": "jwt",
+    "refreshToken": "string opcional",
+    "user": {
+      "id": "uuid",
+      "nombre": "string",
+      "apellido": "string",
+      "email": "string",
+      "rol": {
+        "id": "uuid",
+        "nombre": "admin"
+      }
+    }
+  }
+}
+
+GET /api/v1/auth/me
+Devuelve usuario autenticado y permisos efectivos.
+
+POST /api/v1/auth/logout
+Opcional según estrategia.
+
+GET /api/v1/roles
+Para combos y autorización frontend.
+
+7.2 Usuarios
+Si el MVP sí administrará usuarios.
+
+GET /api/v1/users
+Query params:
+- page
+- pageSize
+- search
+- roleId
+- areaId
+- isActive
+
+GET /api/v1/users/:id
+POST /api/v1/users
+PUT /api/v1/users/:id
+PATCH /api/v1/users/:id/status
+
+Payload create/update sugerido:
+{
+  "nombre": "string",
+  "apellido": "string",
+  "email": "string",
+  "password": "string solo create si auth local",
+  "rolId": "uuid",
+  "areaId": "uuid opcional",
+  "isActive": true
+}
+
+7.3 Catálogos
+GET /api/v1/catalogs/asset-types
+GET /api/v1/catalogs/asset-statuses
+GET /api/v1/catalogs/areas
+GET /api/v1/catalogs/locations
+GET /api/v1/catalogs/brands
+GET /api/v1/catalogs/license-types
+
+Si el proyecto necesita administración de catálogos desde UI:
+POST /api/v1/catalogs/areas
+PUT /api/v1/catalogs/areas/:id
+PATCH /api/v1/catalogs/areas/:id/status
+... y equivalente para los demás
+
+7.4 Activos
+Módulo principal.
+
+GET /api/v1/assets
+Query params recomendados:
+- page
+- pageSize
+- search
+- typeId
+- statusId
+- areaId
+- locationId
+- responsibleUserId
+- unassigned=true|false
+- hasLicense=true|false
+- sortBy
+- sortOrder
+
+Response recomendado:
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": "uuid",
+        "codigoInterno": "AT-0001",
+        "serialNumber": "ABC123",
+        "tipo": { "id": "uuid", "nombre": "Laptop" },
+        "marca": { "id": "uuid", "nombre": "Dell" },
+        "modelo": "Latitude 5420",
+        "estado": { "id": "uuid", "nombre": "Activo" },
+        "areaActual": { "id": "uuid", "nombre": "TI" },
+        "ubicacionActual": { "id": "uuid", "nombre": "San Jose - Piso 2" },
+        "responsableActual": { "id": "uuid", "nombre": "Juan Perez" },
+        "isActive": true,
+        "createdAt": "datetime",
+        "updatedAt": "datetime"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "pageSize": 10,
+      "totalItems": 120,
+      "totalPages": 12
+    }
+  }
+}
+
+GET /api/v1/assets/:id
+Debe devolver detalle expandido para pantalla de detalle.
+Incluir:
+- datos del activo
+- asignación actual
+- licencias asociadas vigentes
+- últimos cambios de estado
+- resumen de auditoría reciente opcional
+
+POST /api/v1/assets
+Payload sugerido:
+{
+  "codigoInterno": "AT-0001",
+  "serialNumber": "ABC123",
+  "tipoActivoId": "uuid",
+  "marcaId": "uuid opcional",
+  "modelo": "string",
+  "descripcion": "string opcional",
+  "estadoActivoId": "uuid",
+  "areaActualId": "uuid opcional",
+  "ubicacionActualId": "uuid opcional",
+  "responsableActualUserId": "uuid opcional",
+  "fechaAdquisicion": "YYYY-MM-DD opcional",
+  "fechaGarantiaFin": "YYYY-MM-DD opcional",
+  "observaciones": "string opcional"
+}
+
+Validaciones mínimas:
+- codigoInterno requerido y único
+- serialNumber único si viene informado
+- tipoActivoId requerido
+- estadoActivoId requerido
+- si responsableActualUserId viene, debe existir y estar activo
+- si areaActualId o ubicacionActualId vienen, deben existir
+
+PUT /api/v1/assets/:id
+Mismo payload de edición. Preferible update explícito y controlado.
+
+PATCH /api/v1/assets/:id/status
+Payload:
+{
+  "estadoActivoId": "uuid",
+  "comentario": "string opcional"
+}
+Debe:
+- validar transición permitida si definen reglas
+- actualizar estado actual del activo
+- insertar en historial_estado
+- registrar auditoría
+
+PATCH /api/v1/assets/:id/assignment
+Payload:
+{
+  "responsableUserId": "uuid opcional",
+  "areaId": "uuid opcional",
+  "ubicacionId": "uuid opcional",
+  "motivo": "string opcional"
+}
+Debe:
+- cerrar asignación vigente anterior
+- crear nueva asignación vigente
+- actualizar campos actuales del activo
+- registrar auditoría
+
+GET /api/v1/assets/:id/assignment-history
+GET /api/v1/assets/:id/status-history
+GET /api/v1/assets/:id/licenses
+GET /api/v1/assets/:id/audit
+
+DELETE /api/v1/assets/:id
+No borrar físicamente si el activo tiene historial. Mejor soft delete.
+
+7.5 Licencias
+
+GET /api/v1/licenses
+Query params:
+- page
+- pageSize
+- search
+- typeId
+- status
+- expiresFrom
+- expiresTo
+- expiringSoon=true|false
+- assigned=true|false
+
+GET /api/v1/licenses/:id
+Debe incluir detalle y asignaciones vigentes/históricas.
+
+POST /api/v1/licenses
+Payload sugerido:
+{
+  "codigoInterno": "LIC-0001 opcional",
+  "nombre": "Microsoft 365 Business Standard",
+  "tipoLicenciaId": "uuid",
+  "proveedor": "string opcional",
+  "claveLicencia": "string opcional",
+  "fechaInicioVigencia": "YYYY-MM-DD",
+  "fechaFinVigencia": "YYYY-MM-DD",
+  "cantidadTotal": 50,
+  "cantidadDisponible": 10,
+  "estado": "activa",
+  "observaciones": "string opcional"
+}
+
+Validaciones:
+- nombre requerido
+- tipoLicenciaId requerido
+- fechaFinVigencia >= fechaInicioVigencia
+- cantidadDisponible <= cantidadTotal cuando ambas existan
+
+PUT /api/v1/licenses/:id
+PATCH /api/v1/licenses/:id/status
+
+POST /api/v1/licenses/:id/assignments
+Payload sugerido:
+{
+  "activoId": "uuid opcional",
+  "userId": "uuid opcional",
+  "observaciones": "string opcional"
+}
+Reglas:
+- activoId o userId debe venir informado
+- si se asigna a activo, activo debe existir y estar activo
+- si se asigna a user, user debe existir y estar activo
+- si manejan cupos, reducir disponibilidad
+- registrar auditoría
+
+PATCH /api/v1/licenses/:id/assignments/:assignmentId/unassign
+Payload:
+{
+  "observaciones": "string opcional"
+}
+Debe cerrar asignación actual y actualizar disponibilidad si aplica.
+
+GET /api/v1/licenses/:id/assignments
+GET /api/v1/licenses/expiring
+Query params:
+- days=30 por defecto
+
+7.6 Auditoría
+
+GET /api/v1/audit
+Query params:
+- modulo
+- entidad
+- entidadId
+- accion
+- performedBy
+- dateFrom
+- dateTo
+- page
+- pageSize
+
+GET /api/v1/audit/:id
+
+Backend debe registrar como mínimo eventos de:
+- login
+- creación de activo
+- edición de activo
+- cambio de estado
+- asignación y reasignación
+- creación/edición de licencia
+- asignación/desasignación de licencia
+- importaciones
+- exportaciones
+- eliminación lógica
+
+7.7 Reportes
+El preliminar menciona reportes esenciales y exportación. Para evitar recalcular demasiado en frontend, exponer reportes listos.
+
+GET /api/v1/reports/assets/by-type
+GET /api/v1/reports/assets/by-status
+GET /api/v1/reports/assets/by-area
+GET /api/v1/reports/assets/unassigned
+GET /api/v1/reports/licenses/expiring
+GET /api/v1/reports/licenses/assigned
+
+Para exportación:
+GET /api/v1/reports/assets/export
+Query params iguales al listado de activos
+Formato sugerido:
+- csv
+- xlsx opcional futuro
+
+GET /api/v1/reports/licenses/export
+
+7.8 Migración e importación inicial
+No es opcional si quieren alinearse al preliminar.
+
+POST /api/v1/imports/assets/preview
+Recibe archivo o payload parseado para validar antes de guardar.
+Debe devolver:
+- filas válidas
+- filas inválidas
+- errores por fila
+- posibles duplicados
+
+POST /api/v1/imports/assets/commit
+Confirma la importación validada.
+Debe crear registro de importación y detalle.
+
+GET /api/v1/imports/assets
+GET /api/v1/imports/assets/:id
+GET /api/v1/imports/assets/:id/errors
+
+8. Secciones o pantallas que frontend probablemente tendrá y cómo condicionan la API
+
+8.1 Login
+Necesita auth/login y auth/me.
+
+8.2 Dashboard
+Necesita endpoints resumidos. Sugerido:
+GET /api/v1/dashboard/summary
+Response sugerido:
+{
+  "success": true,
+  "data": {
+    "totalActivos": 250,
+    "activosPorEstado": [...],
+    "activosSinResponsable": 12,
+    "licenciasPorVencer": 8,
+    "ultimosEventos": [...]
+  }
+}
+
+8.3 Listado de activos
+Necesita paginación, filtros, búsqueda y exportación.
+
+8.4 Detalle de activo
+Necesita detalle expandido, historial de estado, historial de asignación y licencias.
+
+8.5 Crear/editar activo
+Necesita catálogos para combos y endpoint POST/PUT de activo.
+
+8.6 Gestión de licencias
+Necesita listados, detalle, asignación, vencimientos y catálogos.
+
+8.7 Auditoría
+Necesita filtros por usuario, fecha, acción y entidad.
+
+8.8 Reportes
+Necesita endpoints ya agregados y exportables.
+
+8.9 Administración
+Necesita usuarios, roles y catálogos si se decide incluir en MVP visible.
+
+9. Reglas de negocio mínimas que backend debe respetar
+
+9.1 Unicidad
+- codigoInterno de activo debe ser único.
+- serialNumber de activo debe ser único cuando exista.
+- email de usuario debe ser único.
+- codigoInterno de licencia idealmente único cuando exista.
+
+9.2 Integridad referencial
+No se debe permitir guardar referencias a tipo, estado, área, ubicación, usuario o licencia inexistentes.
+
+9.3 Asignación vigente única
+Un activo no debe tener dos asignaciones vigentes simultáneas si el modelo asume una sola responsabilidad actual.
+
+9.4 Historial obligatorio
+Cambios de estado y reasignaciones deben dejar historial.
+
+9.5 Fechas válidas
+- fechaFinVigencia no puede ser menor a fechaInicioVigencia.
+- fechaGarantiaFin no puede ser menor a fechaAdquisicion cuando ambas existan.
+
+9.6 Borrado controlado
+No eliminar físicamente información que afecte trazabilidad salvo decisión explícita y protegida.
+
+9.7 Roles
+- admin: CRUD total, reportes, importación, auditoría, gestión de usuarios y catálogos.
+- tecnico: CRUD operativo de activos, asignaciones, cambios de estado, licencias según política.
+- consulta: solo lectura de módulos permitidos.
+
+10. Validaciones que frontend espera que backend haga
+Frontend puede validar UX, pero backend debe ser la fuente de verdad. Validaciones mínimas:
+
+Activos:
+- campos requeridos
+- unicidad de código/serial
+- ids relacionados válidos
+- longitudes máximas razonables
+- sanitización de texto
+- filtros válidos
+
+Licencias:
+- vigencia coherente
+- cupos coherentes
+- tipo válido
+- asignación válida
+
+Usuarios:
+- email válido
+- rol válido
+- estado válido
+
+Importación:
+- columnas obligatorias
+- mapeo de tipos/estados
+- detección de duplicados
+
+11. Contrato de respuesta recomendado para toda la API
+Para evitar retrabajo frontend, uniformar respuestas.
+
+Éxito:
+{
+  "success": true,
+  "message": "Activo creado correctamente",
+  "data": {...}
+}
+
+Éxito con listado:
+{
+  "success": true,
+  "data": {
+    "items": [...],
+    "pagination": {
+      "page": 1,
+      "pageSize": 10,
+      "totalItems": 100,
+      "totalPages": 10
+    }
+  }
+}
+
+Error validación:
+{
+  "success": false,
+  "message": "Error de validación",
+  "errors": {
+    "codigoInterno": ["El código interno es obligatorio"],
+    "serialNumber": ["El serial ya existe"]
+  }
+}
+
+Error negocio:
+{
+  "success": false,
+  "message": "No se puede asignar la licencia porque el activo está inactivo"
+}
+
+12. Códigos HTTP sugeridos
+- 200 OK consulta o update exitoso
+- 201 Created creación exitosa
+- 400 Bad Request payload inválido
+- 401 Unauthorized no autenticado
+- 403 Forbidden sin permisos
+- 404 Not Found recurso inexistente
+- 409 Conflict duplicados o estado inconsistente
+- 422 Unprocessable Entity validación de negocio
+- 500 Internal Server Error error no controlado
+
+13. Estructura de carpetas sugerida para backend
+backend/src/
+- app.js
+- routes/
+  - auth.routes.js
+  - users.routes.js
+  - assets.routes.js
+  - licenses.routes.js
+  - audit.routes.js
+  - reports.routes.js
+  - imports.routes.js
+  - catalogs.routes.js
+- controllers/
+- services/
+- repositories/ o models/
+- middlewares/
+  - auth.middleware.js
+  - role.middleware.js
+  - error.middleware.js
+- validators/
+- utils/
+- config/
+
+14. Diseño de base de datos mínimo recomendado
+Tablas sugeridas mínimas:
+- users
+- roles
+- areas
+- locations
+- asset_types
+- asset_statuses
+- brands
+- assets
+- asset_assignments
+- asset_status_history
+- license_types
+- licenses
+- license_assignments
+- audit_events
+- imports
+- import_rows
+
+Índices recomendados:
+- assets.codigo_interno unique
+- assets.serial_number unique nullable
+- users.email unique
+- licenses.codigo_interno unique nullable
+- assets.tipo_activo_id index
+- assets.estado_activo_id index
+- assets.area_actual_id index
+- assets.ubicacion_actual_id index
+- assets.responsable_actual_user_id index
+- asset_assignments.activo_id index
+- asset_status_history.activo_id index
+- license_assignments.licencia_id index
+- audit_events.entidad + entidad_id index
+- audit_events.performed_at index
+
+15. Qué no debe hacer backend si quiere evitar retrabajo
+- No devolver ids sin labels mínimos cuando frontend necesita mostrar tablas.
+- No hardcodear catálogos solo en frontend.
+- No mezclar estado operativo con borrado lógico sin claridad.
+- No editar asignaciones históricas; deben cerrarse y abrirse nuevas.
+- No perder payload anterior en cambios auditables.
+- No exponer respuestas distintas por módulo sin estándar.
+- No dejar importaciones sin trazabilidad de errores.
+- No asumir que frontend resolverá integridad relacional.
+
+16. Priorización recomendada de implementación backend
+Fase 1 - Base operativa mínima
+- auth/login + auth/me
+- catálogos base
+- CRUD activos
+- filtros activos
+- cambio de estado
+- asignación actual + historial
+
+Fase 2 - Operación completa
+- CRUD licencias
+- asignación de licencias
+- vencimientos
+- auditoría base
+- dashboard summary
+
+Fase 3 - Valor adicional y cierre de alcance
+- reportes exportables
+- importación inicial con preview/commit
+- administración de usuarios
+- consultas avanzadas de auditoría
+
+17. Necesidades concretas del frontend para evitar fricción
+Frontend necesita que backend entregue:
+- ids y nombres legibles de relaciones en listados y detalles
+- paginación consistente
+- filtros estables
+- mensajes de error claros
+- catálogos para selects
+- endpoints específicos para acciones, no todo metido en update general
+- timestamps para mostrar historial
+- respuestas predecibles
+- posibilidad de pedir detalle expandido cuando una pantalla lo necesite
+
+18. Supuestos funcionales que este documento toma para aterrizar el preliminar
+Estas decisiones son inferencias sanas porque el preliminar no baja a detalle de campos:
+- Un activo tiene una asignación actual y puede tener historial de asignaciones.
+- Un activo tiene un estado actual y un historial de estados.
+- Las licencias pueden asignarse a activo o usuario.
+- Habrá catálogos para evitar texto libre incontrolado.
+- El borrado será lógico en entidades principales.
+- Habrá JWT o equivalente para autenticación.
+- La auditoría se modelará como tabla propia.
+
+Si backend decide algo distinto, debe documentarlo antes para no romper frontend.
+
+19. Resumen ejecutivo para el backend
+El backend de SIGAT-ES no debe construirse como un CRUD aislado de una sola tabla. El preliminar exige un sistema centralizado con trazabilidad, clasificación, estados, responsables, ubicaciones, licencias, reportes, autenticación, roles, migración inicial y evidencias de QA. Para soportar eso sin romper la base de datos y sin causar retrabajo a frontend, la API debe organizarse por módulos, sostenerse en una base relacional normalizada, manejar catálogos, guardar historial de cambios críticos y exponer endpoints pensados para las pantallas reales del sistema.
+
+20. Entrega mínima esperada del backend para que frontend pueda avanzar bien
+Backend debería entregar como primera base integrable:
+- /auth/login
+- /auth/me
+- /catalogs/asset-types
+- /catalogs/asset-statuses
+- /catalogs/areas
+- /catalogs/locations
+- /catalogs/brands
+- /assets [GET, POST]
+- /assets/:id [GET, PUT]
+- /assets/:id/status [PATCH]
+- /assets/:id/assignment [PATCH]
+- /assets/:id/status-history [GET]
+- /assets/:id/assignment-history [GET]
+- /licenses [GET, POST]
+- /licenses/:id [GET, PUT]
+- /licenses/:id/assignments [GET, POST]
+- /audit [GET]
+- /dashboard/summary [GET]
+
+Con eso ya frontend puede comenzar flujos reales de login, dashboard, listado de activos, formularios, detalle, cambios de estado, asignaciones y licencias.
+
+21. Nota final de alineación
+Si este documento se adopta como fuente de verdad backend, cualquier cambio posterior en naming, payloads, relaciones o reglas debe versionarse y comunicarse antes de implementarse. El mayor riesgo de retrabajo aquí no es técnico, sino falta de contrato temprano entre frontend y backend.

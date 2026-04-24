@@ -9,4 +9,11 @@ const update = (id, data) =>
 const findById = (id) =>
   supabase.from('imports').select('*').eq('id', id).single();
 
-module.exports = { create, update, findById };
+const findAll = ({ from, to } = {}) =>
+  supabase
+    .from('imports')
+    .select('*', { count: 'exact' })
+    .range(from ?? 0, to ?? 49)
+    .order('started_at', { ascending: false });
+
+module.exports = { create, update, findById, findAll };

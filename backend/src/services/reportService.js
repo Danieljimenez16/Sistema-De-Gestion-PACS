@@ -307,4 +307,17 @@ const inventoryExport = async () => {
   return data;
 };
 
-module.exports = { dashboard, assetsSummary, assetsByArea, licensesExpiringSoon, inventoryExport };
+const licensesExport = async () => {
+  const { data, error } = await supabase
+    .from('licenses')
+    .select(`
+      id, name, vendor, license_type, max_seats,
+      purchase_date, expiry_date, cost, notes, is_active, created_at
+    `)
+    .order('name');
+
+  if (error) throw new AppError('Error al exportar licencias', 500);
+  return data;
+};
+
+module.exports = { dashboard, assetsSummary, assetsByArea, licensesExpiringSoon, inventoryExport, licensesExport };

@@ -27,6 +27,30 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   );
 };
 
+/**
+ * Convert a JSON array to a CSV string and trigger a browser download.
+ */
+const downloadJSONasCSV = (data: Record<string, unknown>[], filename: string) => {
+  if (!data.length) return;
+  const flattenValue = (v: unknown): string => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'object') return JSON.stringify(v).replace(/"/g, '""');
+    return String(v);
+  };
+  const headers = Object.keys(data[0]);
+  const rows = data.map(row =>
+    headers.map(h => `"${flattenValue(row[h])}"`).join(',')
+  );
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 const ReportCard: React.FC<{
   title: string;
   description: string;
@@ -64,12 +88,17 @@ export const ReportsPage: React.FC = () => {
 
   const handleExport = async (type: 'assets' | 'licenses') => {
     try {
-      const res = type === 'assets'
-        ? await reportService.assetsExport()
-        : await reportService.licensesExport();
-      if (res.data?.url) window.open(res.data.url, '_blank');
+      if (type === 'assets') {
+        const res = await reportService.assetsExport();
+        const data = Array.isArray(res.data) ? res.data : [];
+        downloadJSONasCSV(data, `inventario_activos_${new Date().toISOString().slice(0, 10)}.csv`);
+      } else {
+        const res = await reportService.licensesExport();
+        const data = Array.isArray(res.data) ? res.data : [];
+        downloadJSONasCSV(data, `licencias_${new Date().toISOString().slice(0, 10)}.csv`);
+      }
     } catch {
-      alert('Export no disponible en este momento');
+      alert('Export no disponible en este momento. Verifica la conexión con el servidor.');
     }
   };
 

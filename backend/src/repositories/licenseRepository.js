@@ -10,10 +10,10 @@ const BASE_SELECT = `
 
 const ASSIGN_SELECT = `
   id, assigned_at, released_at, is_active, notes,
-  licenses(id, name),
-  assets(id, code, name),
-  users(id, full_name, email),
-  creator:users!license_assignments_created_by_fkey(id, full_name)
+  license:licenses!license_assignments_license_id_fkey(id, name),
+  asset:assets!license_assignments_asset_id_fkey(id, code, name),
+  user:users!license_assignments_user_id_fkey(id, full_name, email),
+  created_by_user:users!license_assignments_created_by_fkey(id, full_name)
 `.trim();
 
 const findAll = ({ from, to, search, isActive }) => {

@@ -113,18 +113,34 @@ export const userService = {
 export const reportService = {
   dashboard: () =>
     api.get<ApiResponse<DashboardStats>>('/reports/dashboard'),
+  /**
+   * Returns the raw asset inventory array.
+   * Use the `downloadCSV` util to trigger a browser download.
+   */
   assetsExport: (filters?: AssetFilters) =>
-    api.get<ApiResponse<{ url: string }>>(`/reports/assets/export${buildQueryString(filters ?? {})}`),
+    api.get<ApiResponse<Record<string, unknown>[]>>(`/reports/assets/export${buildQueryString(filters ?? {})}`),
+  /**
+   * Returns the raw license list array.
+   * Use the `downloadCSV` util to trigger a browser download.
+   */
   licensesExport: () =>
-    api.get<ApiResponse<{ url: string }>>('/reports/licenses/export'),
+    api.get<ApiResponse<Record<string, unknown>[]>>('/reports/licenses/export'),
 };
 
 // ─── Imports ─────────────────────────────────────────────────────────────────
 export const importService = {
-  preview: (formData: FormData) =>
-    api.postFormData<ApiResponse<ImportPreview>>('/imports/assets/preview', formData),
-  commit: (importId: string) =>
-    api.post<ApiResponse<Import>>('/imports/assets/commit', { import_id: importId }),
+  /**
+   * Send parsed CSV rows (as JSON) for server-side validation.
+   * Returns import_id + valid rows + error rows.
+   */
+  preview: (rows: Record<string, unknown>[]) =>
+    api.post<ApiResponse<ImportPreview>>('/imports/assets/preview', { rows }),
+  /**
+   * Commit the valid rows obtained from preview.
+   * import_id ties this to the pending import record created by preview.
+   */
+  commit: (importId: string, rows: Record<string, unknown>[]) =>
+    api.post<ApiResponse<Import>>('/imports/assets/commit', { import_id: importId, rows }),
   list: () =>
     api.get<ApiResponse<Import[]>>('/imports'),
 };

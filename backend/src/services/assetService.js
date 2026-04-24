@@ -157,6 +157,19 @@ const getStatusHistory = async (id) => {
   return data;
 };
 
+const getHistory = async (id) => {
+  const [statusRes, assignRes] = await Promise.all([
+    assetRepo.getStatusHistory(id),
+    assignmentRepo.findAllByAsset(id),
+  ]);
+  if (statusRes.error) throw new AppError('Error al obtener historial de estado', 500);
+  if (assignRes.error) throw new AppError('Error al obtener historial de asignaciones', 500);
+  return {
+    status_history: statusRes.data ?? [],
+    assignments: assignRes.data ?? [],
+  };
+};
+
 const nextCode = async () => {
   const { data, error } = await assetRepo.nextCode();
   if (error) throw new AppError('Error al generar código', 500);
@@ -175,14 +188,6 @@ const remove = async (id, actorId, ip) => {
     action: 'delete', old_values: { code: asset.code, name: asset.name },
     performed_by: actorId, ip_address: ip,
   });
-};
-
-const getHistory = async (id) => {
-  const [{ data: assignments }, { data: status_history }] = await Promise.all([
-    assignmentRepo.findAllByAsset(id),
-    assetRepo.getStatusHistory(id),
-  ]);
-  return { assignments: assignments ?? [], status_history: status_history ?? [] };
 };
 
 module.exports = { list, getById, create, update, changeStatus, assign, getStatusHistory, getHistory, nextCode, remove };
